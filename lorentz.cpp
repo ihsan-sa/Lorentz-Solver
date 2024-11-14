@@ -61,7 +61,13 @@ public:
     }
 } Vector;
 
-typedef class Wire_Magnetic_Field{
+typedef class Magnetic_field_generic{
+public:
+    virtual Vector field_vector(Vector const &position) = 0;
+}Magnetic_field_generic;
+
+
+typedef class Wire_Magnetic_Field : public Magnetic_field_generic{
     Vector wire_direction; 
     Vector origin;
     long double mu_0; // permeability of free space
@@ -124,13 +130,13 @@ public:
         this->charge = charge;
     }
     //for the moment, we just pass it one magnetic field
-    Vector lorentz_force(Wire_Magnetic_Field &m){
+    Vector lorentz_force(Magnetic_field_generic &m){
         Vector field_vec  = m.field_vector(this->position);
         Vector force = Vector::cross(Vector::sc_mult(this->velocity,this->charge), field_vec);
         return force;
     } 
     //compute acceleration for a time t
-    Vector compute_position(Wire_Magnetic_Field &m, long double dt){
+    Vector compute_position(Magnetic_field_generic &m, long double dt){
         Vector force = this->lorentz_force(m);
         Vector acceleration = Vector::sc_mult(force, (1/this->mass));
         // Vector::print(force, 1);
@@ -146,7 +152,18 @@ public:
     }
 } Particle;
 
+typedef class Uniform_Magnetic_Field : public Magnetic_field_generic{
+    Vector magnetic_field;
 
+public: 
+    Uniform_Magnetic_Field(Vector const &magnetic_field){
+        this->magnetic_field =  magnetic_field;
+    }
+    Vector field_vector(Vector const &position) {
+        return this->magnetic_field;
+    }
+
+} Uniform_Magnetic_Field;
 
 
 int main(){
@@ -159,7 +176,7 @@ int main(){
     std::ofstream Wire_data("wire_data.csv");
     Wire_data<<"x, y,  z"<<std::endl;
     
-    long double t = 3e-2;
+    long double t = 3e-4;
     long double dt = 1e-8;
 
     //creating the magnetic field
@@ -168,8 +185,12 @@ int main(){
     Vector wire_origin(0,0,-0.2);
     Vector wire_direction(0,0,1);
 
+
     Wire_Magnetic_Field m1(wire_origin, wire_direction, current, mu_0); //create wire magnetic field 
     
+    //creating a uniform magnetic field
+    Vector uniform_field(0,10e-7,10e-4);
+    Uniform_Magnetic_Field m_uniform(uniform_field);
 
     //creating the particle
     Vector velocity(-1e3/3, -3e3/3, 0);
@@ -187,12 +208,12 @@ int main(){
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    m1.save_to_file(Wire_data, velocity, t, dt);
+    // m1.save_to_file(Wire_data, velocity, t, dt);
 
     auto middle = std::chrono::high_resolution_clock::now();
 
     for(long i{0};i<t/dt;i++){
-        Vector pos = p1.compute_position(m1, dt);
+        Vector pos = p1.compute_position(m_uniform, dt);
         std::cout<<"Soln: "<<i*100/(t/dt)<<'%'<<"\n";
         // Vector::print(pos, CSV_F);
         Vector::save_to_file(Data, pos, CSV_F);

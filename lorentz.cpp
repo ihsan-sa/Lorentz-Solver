@@ -4,7 +4,6 @@
 #include <chrono>
 
 #define PI 3.141592
-
 typedef enum VFormat_Opt{
     NL, //new line
     NR, //no return
@@ -61,13 +60,12 @@ public:
     }
 } Vector;
 
-typedef class Magnetic_field_generic{
+typedef class Magnetic_Field_Generic{
 public:
     virtual Vector field_vector(Vector const &position) = 0;
-}Magnetic_field_generic;
+}Magnetic_Field_Generic;
 
-
-typedef class Wire_Magnetic_Field : public Magnetic_field_generic{
+typedef class Wire_Magnetic_Field : public Magnetic_Field_Generic{
     Vector wire_direction; 
     Vector origin;
     long double mu_0; // permeability of free space
@@ -115,7 +113,6 @@ public:
     }
 } Wire_Magnetic_Field;
 
-
 typedef class Particle{
     Vector position;
     Vector velocity;
@@ -130,13 +127,13 @@ public:
         this->charge = charge;
     }
     //for the moment, we just pass it one magnetic field
-    Vector lorentz_force(Magnetic_field_generic &m){
+    Vector lorentz_force(Magnetic_Field_Generic &m){
         Vector field_vec  = m.field_vector(this->position);
         Vector force = Vector::cross(Vector::sc_mult(this->velocity,this->charge), field_vec);
         return force;
     } 
     //compute acceleration for a time t
-    Vector compute_position(Magnetic_field_generic &m, long double dt){
+    Vector compute_position(Magnetic_Field_Generic &m, long double dt){
         Vector force = this->lorentz_force(m);
         Vector acceleration = Vector::sc_mult(force, (1/this->mass));
         // Vector::print(force, 1);
@@ -152,7 +149,7 @@ public:
     }
 } Particle;
 
-typedef class Uniform_Magnetic_Field : public Magnetic_field_generic{
+typedef class Uniform_Magnetic_Field : public Magnetic_Field_Generic{
     Vector magnetic_field;
 
 public: 
@@ -164,7 +161,6 @@ public:
     }
 
 } Uniform_Magnetic_Field;
-
 
 void sim2_wirefield(){
     
@@ -229,6 +225,8 @@ void sim2_wirefield(){
 }
 
 void sim1_ufield(){
+
+    //compare to https://www.geogebra.org/m/xpRMzPgc
     
     //csv setup
     std::ofstream Data("data.csv");
@@ -316,6 +314,6 @@ void primitize_sim(){
 int main(){
 
     sim1_ufield();
-    
+
     return 0;
 }

@@ -189,7 +189,7 @@ int main(){
     Wire_Magnetic_Field m1(wire_origin, wire_direction, current, mu_0); //create wire magnetic field 
     
     //creating a uniform magnetic field
-    Vector uniform_field(0,10e-7,10e-4);
+    Vector uniform_field(0,10e-7,0);
     Uniform_Magnetic_Field m_uniform(uniform_field);
 
     //creating the particle

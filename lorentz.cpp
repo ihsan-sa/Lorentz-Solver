@@ -166,9 +166,7 @@ public:
 } Uniform_Magnetic_Field;
 
 
-int main(){
-
-    //simulation
+void sim2_wirefield(){
     
     //initialize the csv
     std::ofstream Data("data.csv");
@@ -176,8 +174,9 @@ int main(){
     std::ofstream Wire_data("wire_data.csv");
     Wire_data<<"x, y,  z"<<std::endl;
     
-    long double t = 3e-4;
-    long double dt = 1e-8;
+    //setting the simulation time
+    long double t = 27;
+    long double dt = 0.001;
 
     //creating the magnetic field
     long double mu_0 = 4*PI*pow(10,-7);
@@ -185,35 +184,32 @@ int main(){
     Vector wire_origin(0,0,-0.2);
     Vector wire_direction(0,0,1);
 
-
     Wire_Magnetic_Field m1(wire_origin, wire_direction, current, mu_0); //create wire magnetic field 
-    
-    //creating a uniform magnetic field
-    Vector uniform_field(0,10e-7,0);
-    Uniform_Magnetic_Field m_uniform(uniform_field);
 
     //creating the particle
-    Vector velocity(-1e3/3, -3e3/3, 0);
-    Vector position(0.5,0.5,0);
+    Vector velocity(8.3, 5.2, 1.2);
+    Vector position(0.0,0.0,0);
     long double q = 1.6*pow(10, -19);
     long double m_p = 1.672621898*pow(10, -27);
-    Particle p1(position, velocity, q, m_p);
+    Particle p1(position, velocity, 1, 0.475);
+
 
     //print the initial lorentz force
-    Vector::print(p1.lorentz_force(m1));
-    std::cout<<Vector::norm(p1.lorentz_force(m1))<<"\n"<<std::endl;
+
+    // Vector::print(p1.lorentz_force(m1));
+    // std::cout<<Vector::norm(p1.lorentz_force(m1))<<"\n"<<std::endl;
 
 
     //simulation
 
+    //save wire info the file
     auto start = std::chrono::high_resolution_clock::now();
+    m1.save_to_file(Wire_data, velocity, t, dt);
 
-    // m1.save_to_file(Wire_data, velocity, t, dt);
-
+    //run sim
     auto middle = std::chrono::high_resolution_clock::now();
-
     for(long i{0};i<t/dt;i++){
-        Vector pos = p1.compute_position(m_uniform, dt);
+        Vector pos = p1.compute_position(m1, dt);
         std::cout<<"Soln: "<<i*100/(t/dt)<<'%'<<"\n";
         // Vector::print(pos, CSV_F);
         Vector::save_to_file(Data, pos, CSV_F);
@@ -221,26 +217,105 @@ int main(){
 
     auto end = std::chrono::high_resolution_clock::now();
 
+    //compute run time
     auto wire_time = std::chrono::duration_cast<std::chrono::microseconds>(middle - start);
     auto sol_time = std::chrono::duration_cast<std::chrono::microseconds>(end - middle);
     auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-
     std::cout<<std::endl<<"Wire computation: "<<wire_time.count()*10e-7<<"s Soln Time: "<<sol_time.count()*10e-7<<"s Total time: "<<total_time.count()*10e-7<<"s"<<std::endl;
 
-    //example 1:
-    // Vector::print(m1.field_vector(Vector(0.1,0,0)));
-    // std::cout<<Vector::norm(m1.field_vector(Vector(0.1,0,0)))<<std::endl;
-
-
-    //other example:
-    // std::cout<<std::endl;
-    // Wire_Magnetic_Field m2(Vector(0,0,0), Vector(0,0,1), 5, mu_0);
-    // Wire_Magnetic_Field m3(Vector(0.1,0,0), Vector(0,0,-1), 7, mu_0);
-
-    // Vector sum = Vector::add(m2.field_vector(Vector(0.05,0,0)), m3.field_vector(Vector(0.05,0,0)));
-    // Vector::print(sum);
-    // std::cout<<Vector::norm(sum)<<std::endl;
-
+    //close files
     Data.close();
+    Wire_data.close();
+}
+
+void sim1_ufield(){
+    
+    //csv setup
+    std::ofstream Data("data.csv");
+    Data<<"x, y,  z"<<std::endl;
+    
+    //set simulation time
+    long double t = 27;
+    long double dt = 0.001;
+    
+    //creating a uniform magnetic field
+    Vector uniform_field(0,0,0.55);
+    Uniform_Magnetic_Field m_uniform(uniform_field);
+
+    //creating the first particle
+    Vector velocity(8.3, 5.2, 1.2);
+    Vector position(0.0,0.0,0);
+    long double q = 1.6*pow(10, -19); //charge of a proton
+    long double m_p = 1.672621898*pow(10, -27); //mass of a proton
+    Particle p1(position, velocity, 1, 0.475);
+
+    //creating the second particle
+    Vector velocity2(-10, 0, 1.3);
+    Vector position2(75,0,0);
+    Particle p2(position2, velocity2, -1, 0.475);
+
+
+    //simulation
+
+    //first particle
+    auto start_particle1 = std::chrono::high_resolution_clock::now();
+    for(long i{0};i<t/dt;i++){
+        Vector pos = p1.compute_position(m_uniform, dt);
+        std::cout<<"Particle 1: "<<i*100/(t/dt)<<'%'<<"\n";
+        // Vector::print(pos, CSV_F);
+        Vector::save_to_file(Data, pos, CSV_F);
+    }
+
+    //second particle
+    auto start_particle2 = std::chrono::high_resolution_clock::now();
+    for(long i{0};i<t/dt;i++){
+        Vector pos = p2.compute_position(m_uniform, dt);
+        std::cout<<"Particle 2: "<<i*100/(t/dt)<<'%'<<"\n";
+        // Vector::print(pos, CSV_F);
+        Vector::save_to_file(Data, pos, CSV_F);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    //computing elapsed time
+    auto time_particle1 = std::chrono::duration_cast<std::chrono::microseconds>(start_particle2 - start_particle1);
+    auto time_particle2 = std::chrono::duration_cast<std::chrono::microseconds>(end - start_particle2);
+    auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start_particle1);
+    std::cout<<std::endl<<"Particle 1 Time: "<<time_particle1.count()*10e-7<<"s Particle 2 Time: "<<time_particle2.count()*10e-7<<"s Total time elapsed: "<<total_time.count()*10e-7<<"s"<<std::endl;
+
+    //close file
+    Data.close();
+}
+
+void primitize_sim(){
+
+    //creating the magnetic field
+    long double mu_0 = 4*PI*pow(10,-7);
+    long double current = 1000;
+    Vector wire_origin(0,0,-0.2);
+    Vector wire_direction(0,0,1);
+
+    Wire_Magnetic_Field m1(wire_origin, wire_direction, current, mu_0); //create wire magnetic field 
+
+    //examples from the Gianocoli textbook
+
+    // example 1:
+    Vector::print(m1.field_vector(Vector(0.1,0,0)));
+    std::cout<<Vector::norm(m1.field_vector(Vector(0.1,0,0)))<<std::endl;
+
+    // other example:
+    std::cout<<std::endl;
+    Wire_Magnetic_Field m2(Vector(0,0,0), Vector(0,0,1), 5, mu_0);
+    Wire_Magnetic_Field m3(Vector(0.1,0,0), Vector(0,0,-1), 7, mu_0);
+
+    Vector sum = Vector::add(m2.field_vector(Vector(0.05,0,0)), m3.field_vector(Vector(0.05,0,0)));
+    Vector::print(sum);
+    std::cout<<Vector::norm(sum)<<std::endl;
+}
+
+int main(){
+
+    sim1_ufield();
+    
     return 0;
 }

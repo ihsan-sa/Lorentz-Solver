@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <fstream>
+#include <chrono>
 
 #define PI 3.141592
 
@@ -30,32 +31,32 @@ public:
 
         return result;
     }
-    static long double dot(Vector v1, Vector v2){
+    static long double dot(Vector const &v1, Vector const &v2){
         return (v1.x*v2.x) + (v1.y*v2.y) + (v1.z*v2.z);
     }
-    static Vector add(Vector v1, Vector v2){
+    static Vector add(Vector const &v1, Vector const &v2){
         return Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
     }
-    static Vector sub(Vector v1, Vector v2){
+    static Vector sub(Vector const &v1, Vector const &v2){
         return Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
     }
-    static Vector sc_mult(Vector v1, long double k){
+    static Vector sc_mult(Vector const &v1, long double k){
         return Vector(v1.x * k, v1.y * k, v1.z * k);
     }
-    static void print(Vector v){
+    static void print(Vector const &v){
         std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
     }
-    static void print(Vector v, VFormat_Opt opt ){
+    static void print(Vector const &v, VFormat_Opt opt ){
         if(opt == NL) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
         else if(opt == NR) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
         else if(opt == CSV_F) std::cout<<v.x<<", "<<v.y<<", "<<v.z<<std::endl;
     }
-    static void save_to_file(std::ostream &file,Vector v, VFormat_Opt opt){
+    static void save_to_file(std::ostream &file, Vector const &v, VFormat_Opt opt){
         if(opt == NL) file<< "[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
         else if(opt == NR) file<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
         else if(opt == CSV_F) file<<v.x<<", "<<v.y<<", "<<v.z<<std::endl;
     }
-    static long double norm(Vector v){
+    static long double norm(Vector const &v){
         return sqrt((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
     }
 } Vector;
@@ -67,14 +68,14 @@ typedef class Wire_Magnetic_Field{
     long double i_wire; // current through the wire
 
 public:
-    Wire_Magnetic_Field(Vector origin, Vector wire_direction, long double i_wire, long double mu_0){
+    Wire_Magnetic_Field(Vector const &origin, Vector const &wire_direction, long double i_wire, long double mu_0){
         this->i_wire = i_wire;
         this->mu_0 = mu_0;
         this->wire_direction = wire_direction;
         this->origin = origin;
     }
     //return the field vector at a given position
-    Vector field_vector(Vector position){  
+    Vector field_vector(Vector const &position){  
         //first, we need to figure out the distance from the wire, r.
         //we know that the wire is a line with direction vector wire_direction and that the particle is at a point described by the position vector.
         //we use the perp formula
@@ -94,14 +95,15 @@ public:
         Vector field_vec = Vector::sc_mult(field_dir, scaling_constant); // compute final field vector
         return field_vec;
     }
-    void save_to_file(std::ostream &file,  Vector particle_init_velocity, long double t, long double dt){ 
+    void save_to_file(std::ostream &file,  Vector const &particle_init_velocity, long double t, long double dt){ 
         //we are going to use the initial velocity of the particle to scale the line.
         Vector point_on_wire = this->origin;
         long double scaling_constant = Vector::norm(particle_init_velocity);
         for(long i{0}; i<t/dt;i++){
             //now we save the point on the wire
             Vector::save_to_file(file, point_on_wire, CSV_F);
-            Vector::print(point_on_wire, CSV_F);
+            std::cout<<"wire: "<<i*100/(t/dt)<<'%'<<" \n";
+            // Vector::print(point_on_wire, CSV_F);
             point_on_wire = Vector::add(point_on_wire, Vector::sc_mult(this->wire_direction, 0.00002));
         }
     }
@@ -115,20 +117,20 @@ typedef class Particle{
     long double mass;
 
 public:
-    Particle(Vector init_pos, Vector init_vel, long double charge, long double mass){
+    Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass){
         this->position = init_pos;
         this->velocity = init_vel;
         this->mass = mass;
         this->charge = charge;
     }
     //for the moment, we just pass it one magnetic field
-    Vector lorentz_force(Wire_Magnetic_Field m){
+    Vector lorentz_force(Wire_Magnetic_Field &m){
         Vector field_vec  = m.field_vector(this->position);
         Vector force = Vector::cross(Vector::sc_mult(this->velocity,this->charge), field_vec);
         return force;
     } 
     //compute acceleration for a time t
-    Vector compute_position(Wire_Magnetic_Field m, long double dt){
+    Vector compute_position(Wire_Magnetic_Field &m, long double dt){
         Vector force = this->lorentz_force(m);
         Vector acceleration = Vector::sc_mult(force, (1/this->mass));
         // Vector::print(force, 1);
@@ -145,6 +147,8 @@ public:
 } Particle;
 
 
+
+
 int main(){
 
     //simulation
@@ -155,8 +159,8 @@ int main(){
     std::ofstream Wire_data("wire_data.csv");
     Wire_data<<"x, y,  z"<<std::endl;
     
-    long double t = 3e-5;
-    long double dt = 1e-9;
+    long double t = 3e-2;
+    long double dt = 1e-8;
 
     //creating the magnetic field
     long double mu_0 = 4*PI*pow(10,-7);
@@ -168,7 +172,7 @@ int main(){
     
 
     //creating the particle
-    Vector velocity(-1e6, -2e6, 0);
+    Vector velocity(-1e3/3, -3e3/3, 0);
     Vector position(0.5,0.5,0);
     long double q = 1.6*pow(10, -19);
     long double m_p = 1.672621898*pow(10, -27);
@@ -181,15 +185,26 @@ int main(){
 
     //simulation
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     m1.save_to_file(Wire_data, velocity, t, dt);
+
+    auto middle = std::chrono::high_resolution_clock::now();
 
     for(long i{0};i<t/dt;i++){
         Vector pos = p1.compute_position(m1, dt);
-        Vector::print(pos, CSV_F);
+        std::cout<<"Soln: "<<i*100/(t/dt)<<'%'<<"\n";
+        // Vector::print(pos, CSV_F);
         Vector::save_to_file(Data, pos, CSV_F);
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
 
+    auto wire_time = std::chrono::duration_cast<std::chrono::microseconds>(middle - start);
+    auto sol_time = std::chrono::duration_cast<std::chrono::microseconds>(end - middle);
+    auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+    std::cout<<std::endl<<"Wire computation: "<<wire_time.count()*10e-7<<"s Soln Time: "<<sol_time.count()*10e-7<<"s Total time: "<<total_time.count()*10e-7<<"s"<<std::endl;
 
     //example 1:
     // Vector::print(m1.field_vector(Vector(0.1,0,0)));

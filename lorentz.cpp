@@ -58,14 +58,18 @@ public:
     static long double norm(Vector const &v){
         return sqrt((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
     }
+    static Vector adjust_mag(Vector &v, long double const mag){
+        long double scaling_const = mag/Vector::norm(v);
+        return Vector::sc_mult(v, scaling_const);
+    }
 } Vector;
 
-typedef class Magnetic_Field_Generic{
+typedef class Field_Generic{
 public:
     virtual Vector field_vector(Vector const &position) = 0;
-}Magnetic_Field_Generic;
+}Field_Generic;
 
-typedef class Wire_Magnetic_Field : public Magnetic_Field_Generic{
+typedef class Wire_Magnetic_Field : public Field_Generic{
     Vector wire_direction; 
     Vector origin;
     long double mu_0; // permeability of free space
@@ -78,6 +82,7 @@ public:
         this->wire_direction = wire_direction;
         this->origin = origin;
     }
+    Wire_Magnetic_Field() : mu_0(0), origin(Vector(0,0,0)), wire_direction(Vector(0,0,0)), i_wire(0) {}
     //return the field vector at a given position
     Vector field_vector(Vector const &position){  
         //first, we need to figure out the distance from the wire, r.
@@ -112,6 +117,115 @@ public:
         }
     }
 } Wire_Magnetic_Field;
+typedef class Uniform_Magnetic_Field : public Field_Generic{
+    Vector magnetic_field;
+
+public: 
+    Uniform_Magnetic_Field(Vector const &magnetic_field){
+        this->magnetic_field =  magnetic_field;
+    }
+    Uniform_Magnetic_Field() : magnetic_field(Vector(0,0,0)){}
+    Vector field_vector(Vector const &position) {
+        return this->magnetic_field;
+    }
+
+} Uniform_Magnetic_Field;
+
+typedef class Uniform_Electric_Field : public Field_Generic{
+    Vector electric_field;
+public:
+    Uniform_Electric_Field(Vector const &electric_field){
+        this->electric_field = electric_field;
+    }
+    Uniform_Electric_Field() : electric_field(Vector(0,0,0)) {}
+    Vector field_vector(Vector const &position){
+        return this->electric_field;
+    }
+
+}Uniform_Electric_Field;
+
+typedef class Radial_Electric_Field : public Field_Generic{
+    Vector origin;
+    long double k = 8.99e9;
+    long double charge;
+public:
+    Radial_Electric_Field(Vector const &origin, long double charge){
+        this->origin = origin;
+        this->charge = charge;
+    }
+    Radial_Electric_Field() : origin(Vector(0,0,0)), k(8.99e9), charge(0){}
+    Vector field_vector(Vector const &position){
+        Vector OP = Vector::sub(position, this->origin);
+        long double r = Vector::norm(OP);
+        long double magnitude = (this->k * this->charge)/pow(r, 2);
+
+        OP = Vector::adjust_mag(OP, magnitude);
+        return OP;
+    }
+} Radial_Electric_Field;
+
+//We will now define a simulation space which contains a number of fields.
+typedef class Space{
+    //add dynamic mem later
+    int n_WMF = 0; //number of wire magnetic fields
+    int n_UMF = 0;
+    int n_UEF = 0;
+    int n_REF = 0;
+    Wire_Magnetic_Field wire_magnetic_fields[10];
+    Uniform_Magnetic_Field uniform_magnetic_fields[10];
+    Uniform_Electric_Field uniform_electric_fields[10];
+    Radial_Electric_Field radial_electric_fields[10];
+
+public:
+    Space(){
+        this->n_REF = 0;
+        this->n_UEF = 0;
+        this->n_UMF = 0;
+        this->n_WMF = 0;
+    }
+    //adding fields 
+    void add_WMF(Wire_Magnetic_Field const &m){
+        this->wire_magnetic_fields[n_WMF] = m;
+        n_WMF ++;
+    }
+    void add_UMF(Uniform_Magnetic_Field const &m){
+    this->uniform_magnetic_fields[n_UMF] = m;
+    n_UMF ++;
+}
+    void add_UEF(Uniform_Electric_Field const &m){
+    this->uniform_electric_fields[n_UEF] = m;
+    n_UEF ++;
+}
+    void add_REF(Radial_Electric_Field const &m){
+        this->radial_electric_fields[n_REF] = m;
+        n_REF ++;
+    }
+
+    Vector electric_field(Vector const &position){
+        Vector net_electric_field(0,0,0);
+        //loop through the elctric fields and add them up
+        for(int i{0}; i<n_UEF;i++){
+            net_electric_field = Vector::add(net_electric_field, uniform_electric_fields[i].field_vector(position));
+        }
+        for(int i{0}; i<n_REF;i++){
+            net_electric_field = Vector::add(net_electric_field, radial_electric_fields[i].field_vector(position));
+        }
+        return net_electric_field;
+    }
+    Vector magnetic_field(Vector const &position){
+        Vector net_magnetic_field(0,0,0);
+        //loop through the elctric fields and add them up
+        for(int i{0}; i<n_UMF;i++){
+            net_magnetic_field = Vector::add(net_magnetic_field, uniform_magnetic_fields[i].field_vector(position));
+        }
+        for(int i{0}; i<n_WMF;i++){
+            net_magnetic_field = Vector::add(net_magnetic_field, wire_magnetic_fields[i].field_vector(position));
+        }
+        return net_magnetic_field;
+    }
+
+}Space;
+
 
 typedef class Particle{
     Vector position;
@@ -127,13 +241,13 @@ public:
         this->charge = charge;
     }
     //for the moment, we just pass it one magnetic field
-    Vector lorentz_force(Magnetic_Field_Generic &m){
+    Vector lorentz_force(Field_Generic &m){
         Vector field_vec  = m.field_vector(this->position);
         Vector force = Vector::cross(Vector::sc_mult(this->velocity,this->charge), field_vec);
         return force;
     } 
     //compute acceleration for a time t
-    Vector compute_position(Magnetic_Field_Generic &m, long double dt){
+    Vector compute_position(Field_Generic &m, long double dt){
         Vector force = this->lorentz_force(m);
         Vector acceleration = Vector::sc_mult(force, (1/this->mass));
         // Vector::print(force, 1);
@@ -147,20 +261,28 @@ public:
         // Vector::print(this->velocity, 1);
         return position;
     }
+    //temporarily overload the function for testing 
+    Vector lorentz_force(Space &space){
+        Vector force = Vector::add(Vector::sc_mult(space.electric_field(this->position), this->charge), Vector::cross(Vector::sc_mult(this->velocity,this->charge), space.magnetic_field(this->position)));
+        return force;
+    } 
+    //compute acceleration for a time t
+    Vector compute_position(Space &space, long double dt){
+        Vector force = this->lorentz_force(space);
+        Vector acceleration = Vector::sc_mult(force, (1/this->mass));
+        // Vector::print(force, 1);
+        // Vector::print(acceleration, 1);
+
+        Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
+        // Vector::print(dS, 1);
+        this->position = Vector::add(this->position, dS);
+        // Vector::print(this->velocity, 1);
+        this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
+        // Vector::print(this->velocity, 1);
+        return position;
+    }
+
 } Particle;
-
-typedef class Uniform_Magnetic_Field : public Magnetic_Field_Generic{
-    Vector magnetic_field;
-
-public: 
-    Uniform_Magnetic_Field(Vector const &magnetic_field){
-        this->magnetic_field =  magnetic_field;
-    }
-    Vector field_vector(Vector const &position) {
-        return this->magnetic_field;
-    }
-
-} Uniform_Magnetic_Field;
 
 void sim2_wirefield(){
     
@@ -311,9 +433,214 @@ void primitize_sim(){
     std::cout<<Vector::norm(sum)<<std::endl;
 }
 
+void sim3_ufield(){
+    
+    //csv setup
+    std::ofstream Data("data.csv");
+    Data<<"x, y,  z"<<std::endl;
+    
+    //set simulation time
+    long double t = 27;
+    long double dt = 0.001;
+    
+    //creating a uniform magnetic field
+    Vector uniform_field(1,0,0);
+    Uniform_Magnetic_Field m_uniform(uniform_field);
+
+    //creating the first particle
+    Vector velocity(1,0,10);
+    Vector position(0.0,0.0,0);
+    long double q = 1.6*pow(10, -19); //charge of a proton
+    long double m_p = 1.672621898*pow(10, -27); //mass of a proton
+    Particle p1(position, velocity, -1, 0.475);
+
+
+
+    //simulation
+
+    //first particle
+    auto start_particle1 = std::chrono::high_resolution_clock::now();
+    for(long i{0};i<t/dt;i++){
+        Vector pos = p1.compute_position(m_uniform, dt);
+        std::cout<<i*100/(t/dt)<<'%'<<"\n";
+        // Vector::print(pos, CSV_F);
+        Vector::save_to_file(Data, pos, CSV_F);
+    }
+
+    
+    auto end = std::chrono::high_resolution_clock::now();
+
+    //computing elapsed time
+    auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start_particle1);
+    
+    std::cout<<std::endl<<"Total time elapsed: "<<total_time.count()*10e-7<<"s"<<std::endl;
+
+    //close file
+    Data.close();
+}
+
+void sim4_ufields(){
+    
+    //csv setup
+    std::ofstream Data("data.csv");
+    Data<<"x, y,  z"<<std::endl;
+    
+    //set simulation time
+    long double t = 27;
+    long double dt = 0.001;
+    
+    //creating a uniform magnetic field
+    Vector uniform_field_1(1,0,0);
+    Vector uniform_field_2(0,1.5,0);
+    Vector uniform_field_3(0,0,2);
+    Uniform_Magnetic_Field m_uniform1(uniform_field_1);
+    Uniform_Magnetic_Field m_uniform2(uniform_field_2);
+    Uniform_Magnetic_Field m_uniform3(uniform_field_3);
+
+
+    //creating the space;
+    Space space1;
+
+    space1.add_UMF(m_uniform1);
+    space1.add_UMF(m_uniform2);
+    space1.add_UMF(m_uniform3);
+
+    //creating the first particle
+    Vector velocity(1,0,10);
+    Vector position(0.0,0.0,0);
+    long double q = 1.6*pow(10, -19); //charge of a proton
+    long double m_p = 1.672621898*pow(10, -27); //mass of a proton
+    Particle p1(position, velocity, -1, 0.475);
+
+
+
+    //simulation
+
+    //first particle
+    auto start_particle1 = std::chrono::high_resolution_clock::now();
+    for(long i{0};i<t/dt;i++){
+        Vector pos = p1.compute_position(space1, dt);
+        std::cout<<i*100/(t/dt)<<'%'<<"\n";
+        // Vector::print(pos, CSV_F);
+        Vector::save_to_file(Data, pos, CSV_F);
+    }
+
+    
+    auto end = std::chrono::high_resolution_clock::now();
+
+    //computing elapsed time
+    auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start_particle1);
+    
+    std::cout<<std::endl<<"Total time elapsed: "<<total_time.count()*10e-7<<"s"<<std::endl;
+
+    //close file
+    Data.close();
+}
+
+
+void sim6_pointcharge(){
+    
+    //csv setup
+    std::ofstream Data("data.csv");
+    Data<<"x, y,  z"<<std::endl;
+    
+    //set simulation time
+    long double t = 27;
+    long double dt = 0.001;
+    
+    //creating a uniform magnetic field
+    Radial_Electric_Field e1(Vector(0,0,0),1);
+
+    
+
+
+    //creating the space;
+    Space space1;
+    space1.add_REF(e1);
+   
+
+    //creating the first particle
+    Vector velocity(0,0,0);
+    Vector position(1,0.0,0);
+    long double q = 1.6*pow(10, -19); //charge of a proton
+    long double m_p = 1.672621898*pow(10, -27); //mass of a proton
+    Particle p1(position, velocity, -1, 0.475);
+
+
+
+    //simulation
+
+    //first particle
+    auto start_particle1 = std::chrono::high_resolution_clock::now();
+    for(long i{0};i<t/dt;i++){
+        Vector pos = p1.compute_position(space1, dt);
+        std::cout<<i*100/(t/dt)<<'%'<<"\n";
+        // Vector::print(pos, CSV_F);
+        Vector::save_to_file(Data, pos, CSV_F);
+    }
+
+    
+    auto end = std::chrono::high_resolution_clock::now();
+
+    //computing elapsed time
+    auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start_particle1);
+    
+    std::cout<<std::endl<<"Total time elapsed: "<<total_time.count()*10e-7<<"s"<<std::endl;
+
+    //close file
+    Data.close();
+}
+
+void sim5_ufield(){
+    
+    //csv setup
+    std::ofstream Data("data.csv");
+    Data<<"x, y,  z"<<std::endl;
+    
+    //set simulation time
+    long double t = 27;
+    long double dt = 0.001;
+    
+    //creating a uniform magnetic field
+    Vector uniform_field(1,0,0);
+    Uniform_Magnetic_Field m_uniform(uniform_field);
+
+    //creating the first particle
+    Vector velocity(1,0,10);
+    Vector position(0.0,0.0,0);
+    long double q = 1.6*pow(10, -19); //charge of a proton
+    long double m_p = 1.672621898*pow(10, -27); //mass of a proton
+    Particle p1(position, velocity, -1, 0.475);
+
+
+
+    //simulation
+
+    //first particle
+    auto start_particle1 = std::chrono::high_resolution_clock::now();
+    for(long i{0};i<t/dt;i++){
+        Vector pos = p1.compute_position(m_uniform, dt);
+        std::cout<<i*100/(t/dt)<<'%'<<"\n";
+        // Vector::print(pos, CSV_F);
+        Vector::save_to_file(Data, pos, CSV_F);
+    }
+
+    
+    auto end = std::chrono::high_resolution_clock::now();
+
+    //computing elapsed time
+    auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start_particle1);
+    
+    std::cout<<std::endl<<"Total time elapsed: "<<total_time.count()*10e-7<<"s"<<std::endl;
+
+    //close file
+    Data.close();
+}
+
+
 int main(){
 
-    sim1_ufield();
+    sim4_ufields();
 
     return 0;
 }

@@ -1,8 +1,14 @@
 #include <iostream>
 #include <cmath>
+#include <fstream>
 
 #define PI 3.141592
 
+typedef enum VFormat_Opt{
+    NL, //new line
+    NR, //no return
+    CSV_F, //CSV Format
+}VFormat_Opt;
 typedef class Vector{
     long double x;
     long double y;
@@ -39,9 +45,15 @@ public:
     static void print(Vector v){
         std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
     }
-    static void print(Vector v, bool line){
-        if(!line) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
-        else std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
+    static void print(Vector v, VFormat_Opt opt ){
+        if(opt == NL) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
+        else if(opt == NR) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
+        else if(opt == CSV_F) std::cout<<v.x<<", "<<v.y<<", "<<v.z<<std::endl;
+    }
+    static void save_to_file(std::ostream &file,Vector v, VFormat_Opt opt){
+        if(opt == NL) file<< "[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
+        else if(opt == NR) file<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
+        else if(opt == CSV_F) file<<v.x<<", "<<v.y<<", "<<v.z<<std::endl;
     }
     static long double norm(Vector v){
         return sqrt((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
@@ -124,23 +136,29 @@ public:
 
 int main(){
 
+    std::ofstream Data("data.csv");
+    Data<<"x, y,  z"<<std::endl;
     //example 1:
     long double q = 1.6*pow(10, -19);
     long double m_p = 1.672621898*pow(10, -27);
     long double mu_0 = 4*PI*pow(10,-7);
-    long double dt = 2./1000;
+    long double t = 4;
+    long double dt = 1./1000;
 
-    Wire_Magnetic_Field m1(Vector(0,0,0), Vector(0,0,1), 25, mu_0);
+    Wire_Magnetic_Field m1(Vector(0,0,0), Vector(0,0,1), 100, mu_0);
     Vector::print(m1.field_vector(Vector(0.1,0,0)));
     std::cout<<Vector::norm(m1.field_vector(Vector(0.1,0,0)))<<std::endl;
 
-    Particle p1(Vector(0.1,0,0), Vector(1,0,0), q,m_p);
+    Particle p1(Vector(0.001,0,0), Vector(0.1,0.1,0.1), q, m_p);
     Vector::print(p1.lorentz_force(m1));
     std::cout<<Vector::norm(p1.lorentz_force(m1))<<"\n"<<std::endl;
 
-    for(int i{0};i<1000;i++){
-        Vector::print(p1.compute_position(m1, dt));
+    for(int i{0};i<t/dt;i++){
+        Vector pos = p1.compute_position(m1, dt);
+        Vector::print(pos, CSV_F);
+        Vector::save_to_file(Data, pos, CSV_F);
     }
+
 
 
 
@@ -154,5 +172,6 @@ int main(){
     // Vector::print(sum);
     // std::cout<<Vector::norm(sum)<<std::endl;
 
+    Data.close();
     return 0;
 }

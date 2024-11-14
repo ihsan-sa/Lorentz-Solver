@@ -39,6 +39,10 @@ public:
     static void print(Vector v){
         std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
     }
+    static void print(Vector v, bool line){
+        if(!line) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
+        else std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
+    }
     static long double norm(Vector v){
         return sqrt((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
     }
@@ -101,9 +105,19 @@ public:
         return force;
     } 
     //compute acceleration for a time t
-    Vector compute_position(Wire_Magnetic_Field m, float t){
+    Vector compute_position(Wire_Magnetic_Field m, long double dt){
         Vector force = this->lorentz_force(m);
         Vector acceleration = Vector::sc_mult(force, (1/this->mass));
+        // Vector::print(force, 1);
+        // Vector::print(acceleration, 1);
+
+        Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
+        // Vector::print(dS, 1);
+        this->position = Vector::add(this->position, dS);
+        // Vector::print(this->velocity, 1);
+        this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
+        // Vector::print(this->velocity, 1);
+        return position;
     }
 } Particle;
 
@@ -114,22 +128,31 @@ int main(){
     long double q = 1.6*pow(10, -19);
     long double m_p = 1.672621898*pow(10, -27);
     long double mu_0 = 4*PI*pow(10,-7);
+    long double dt = 2./1000;
+
     Wire_Magnetic_Field m1(Vector(0,0,0), Vector(0,0,1), 25, mu_0);
     Vector::print(m1.field_vector(Vector(0.1,0,0)));
     std::cout<<Vector::norm(m1.field_vector(Vector(0.1,0,0)))<<std::endl;
+
     Particle p1(Vector(0.1,0,0), Vector(1,0,0), q,m_p);
     Vector::print(p1.lorentz_force(m1));
-    std::cout<<Vector::norm(p1.lorentz_force(m1))<<std::endl;
+    std::cout<<Vector::norm(p1.lorentz_force(m1))<<"\n"<<std::endl;
+
+    for(int i{0};i<1000;i++){
+        Vector::print(p1.compute_position(m1, dt));
+    }
+
+
 
 
     //other example:
-    std::cout<<std::endl;
-    Wire_Magnetic_Field m2(Vector(0,0,0), Vector(0,0,1), 5, mu_0);
-    Wire_Magnetic_Field m3(Vector(0.1,0,0), Vector(0,0,-1), 7, mu_0);
+    // std::cout<<std::endl;
+    // Wire_Magnetic_Field m2(Vector(0,0,0), Vector(0,0,1), 5, mu_0);
+    // Wire_Magnetic_Field m3(Vector(0.1,0,0), Vector(0,0,-1), 7, mu_0);
 
-    Vector sum = Vector::add(m2.field_vector(Vector(0.05,0,0)), m3.field_vector(Vector(0.05,0,0)));
-    Vector::print(sum);
-    std::cout<<Vector::norm(sum)<<std::endl;
+    // Vector sum = Vector::add(m2.field_vector(Vector(0.05,0,0)), m3.field_vector(Vector(0.05,0,0)));
+    // Vector::print(sum);
+    // std::cout<<Vector::norm(sum)<<std::endl;
 
     return 0;
 }

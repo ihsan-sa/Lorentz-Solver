@@ -94,6 +94,17 @@ public:
         Vector field_vec = Vector::sc_mult(field_dir, scaling_constant); // compute final field vector
         return field_vec;
     }
+    void save_to_file(std::ostream &file,  Vector particle_init_velocity, long double t, long double dt){ 
+        //we are going to use the initial velocity of the particle to scale the line.
+        Vector point_on_wire = this->origin;
+        long double scaling_constant = Vector::norm(particle_init_velocity);
+        for(long i{0}; i<t/dt;i++){
+            //now we save the point on the wire
+            Vector::save_to_file(file, point_on_wire, CSV_F);
+            Vector::print(point_on_wire, CSV_F);
+            point_on_wire = Vector::add(point_on_wire, Vector::sc_mult(this->wire_direction, 0.00002));
+        }
+    }
 } Wire_Magnetic_Field;
 
 
@@ -136,24 +147,43 @@ public:
 
 int main(){
 
+    //simulation
+    
+    //initialize the csv
     std::ofstream Data("data.csv");
     Data<<"x, y,  z"<<std::endl;
-    //example 1:
+    std::ofstream Wire_data("wire_data.csv");
+    Wire_data<<"x, y,  z"<<std::endl;
+    
+    long double t = 3e-5;
+    long double dt = 1e-9;
+
+    //creating the magnetic field
+    long double mu_0 = 4*PI*pow(10,-7);
+    long double current = 1000;
+    Vector wire_origin(0,0,-0.2);
+    Vector wire_direction(0,0,1);
+
+    Wire_Magnetic_Field m1(wire_origin, wire_direction, current, mu_0); //create wire magnetic field 
+    
+
+    //creating the particle
+    Vector velocity(-1e6, -2e6, 0);
+    Vector position(0.5,0.5,0);
     long double q = 1.6*pow(10, -19);
     long double m_p = 1.672621898*pow(10, -27);
-    long double mu_0 = 4*PI*pow(10,-7);
-    long double t = 4;
-    long double dt = 1./1000;
+    Particle p1(position, velocity, q, m_p);
 
-    Wire_Magnetic_Field m1(Vector(0,0,0), Vector(0,0,1), 100, mu_0);
-    Vector::print(m1.field_vector(Vector(0.1,0,0)));
-    std::cout<<Vector::norm(m1.field_vector(Vector(0.1,0,0)))<<std::endl;
-
-    Particle p1(Vector(0.001,0,0), Vector(0.1,0.1,0.1), q, m_p);
+    //print the initial lorentz force
     Vector::print(p1.lorentz_force(m1));
     std::cout<<Vector::norm(p1.lorentz_force(m1))<<"\n"<<std::endl;
 
-    for(int i{0};i<t/dt;i++){
+
+    //simulation
+
+    m1.save_to_file(Wire_data, velocity, t, dt);
+
+    for(long i{0};i<t/dt;i++){
         Vector pos = p1.compute_position(m1, dt);
         Vector::print(pos, CSV_F);
         Vector::save_to_file(Data, pos, CSV_F);
@@ -161,6 +191,9 @@ int main(){
 
 
 
+    //example 1:
+    // Vector::print(m1.field_vector(Vector(0.1,0,0)));
+    // std::cout<<Vector::norm(m1.field_vector(Vector(0.1,0,0)))<<std::endl;
 
 
     //other example:

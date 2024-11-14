@@ -1,4 +1,7 @@
 % Read the CSV file
+clc, clearvars
+clear all
+
 disp(pwd);
 addpath('C:/Users/ihsan/OneDrive/Documents/coding/ECE150/Other_CPP/Lorentz-Solver');
 data = readtable("data.csv");

@@ -19,7 +19,6 @@ A simulation space contains objects with specified attributes:
     - Magnetic dipoles (natural ie magnet) 
         - Origin (center of dipole)
         - Dipole moment 
-
     - Loops of wire (Magnetic dipole)
         - Current
         - Origin (center of circle)

@@ -42,9 +42,11 @@ All _objects_ inherit an _Object_ class. They have a methods named:
 
 _Spaces_ can also contain other _spaces_ since _Spaces_ also inherit the _Object_ class.
 
+_Particles_ can also be added to _spaces_. This is covered below.
+
 ### **Spaces**
 
-Inside of the _space_, there is a dynamic array which holds all items type _Object*_. 
+Inside of the _space_, there is a dynamic array which holds all items type _Object*_ and one that holds items type _Particle*_.
 Charged particles will also be added to spaces and allowed to interact later.
 
 _Spaces_ have methods:
@@ -60,6 +62,7 @@ _Particles_ have a:
 - charge
 - velocity vector
 - position vector
+- name
 
 _Particles_ also have a method `simulate(...)` which computes the path the particle takes within a given space. 
 
@@ -71,17 +74,11 @@ To create a vector, use `Vector [vector_name](x, y, z)` or `Vector(x, y, z)`, wh
 
 ## Constructing and running a simulation
 
-**1. Initialize the data collection file**
-
-Use `std::ofstream [file_name]("data.csv");` and then
-
-`[file_name]<<"x,y,z"<<std::endl;` to write the column headers.
-
-**2. Create a _Space_**
+**1. Create a _Space_**
   
 Create a _Space_ by using `Space [space_name];`
 
-**3. Create _Objects_ and add them to the Space**
+**2. Create _Objects_ and add them to the Space**
 
 Create an _Object_ using `[Object_Type] [object_name](...);`.
 
@@ -91,24 +88,32 @@ Here are the available objects and their definitions:
 - `Static_Point_Charge [point_charge_name](Vector const &origin, long double charge);`
 - `Uniform_Electric_Field [field_name](Vector const &direction, long double const &magnitude);`
 - `Uniform_Magnetic_Field [field_name](Vector const &direction, long double const &magnitude);`
+
+Add the objects to the space:
+
+`[space_name].add_object([object_name]);`
  
-**4. Create a Particle**
+**3. Create a Particle**
 
-Create a particle as follows:
+Create a particle as follows and add it to a space:
 
-`Particle [particle_name](Vector const &init_pos, Vector const &init_vel, long double charge, long double mass);`
+`Particle [particle_name](Vector const &init_pos, Vector const &init_vel, long double charge, long double mass, std::string name);`
 
-**5. Set simulation parameters including:**
+`[space_name].add_object([particle_name]);`
+
+**4. Set simulation parameters including:**
 
 Set simulation time `long double t` and step size `long double dt`.
 
 **6. Simulation**
 
-run `simulate(Space &space, long double t, long double dt, std::ofstream &Data, Simulation_Type sim_type)`, where `Data` is your output file and `sim_type` is either `KINEMATIC` or `RK4_HYBRID`.
+run `[space_name].simulate(long double t, long double dt, Simulation_Type sim_type)`, where `sim_type` is either `KINEMATIC` or `RK4_HYBRID`.
 
 **7. Graphing**
 
 Run the matlab script to graph the data in the csv output file. You may need to add the output file to your path. 
+
+Each particle will have it's own output named `[particle_name].csv`. Make sure you graph the right ones in MATLAB.
 
 If you add a _Wire_ to your simulation, you may want to plot it. In that case, plot the _wire_data.csv_ as well. You may need to adjust the scaling factors in the `save_to_file` method in _Wire_.
 

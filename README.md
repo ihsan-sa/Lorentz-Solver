@@ -71,7 +71,7 @@ To create a vector, use `Vector [vector_name](x, y, z)` or `Vector(x, y, z)`, wh
 
 ## Constructing and running a simulation
 
-**Initialize the data collection file**
+**1. Initialize the data collection file**
 
 Use `std::ofstream [file_name]("data.csv");` and then
 

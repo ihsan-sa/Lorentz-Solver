@@ -25,10 +25,12 @@ A simulation space contains objects with specified attributes:
         - Radius
         - Dipole moment (NOT user defined)
 
+
 All objects inherit an Object class. They have a methods named:
     - magnetic_field_strength(...)
     - electric_field_strength(...)
 
+Spaces can also contain other spaces since Spaces also inherit the Object class.
 
  --- SPACES:
 

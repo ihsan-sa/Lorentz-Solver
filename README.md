@@ -18,17 +18,13 @@ A simulation space contains objects with specified attributes:
         - Scaled field vector (pass in direction and magnitude)
     - Magnetic dipoles (natural ie magnet) 
         - Origin (center of dipole)
-
-        not user defined:
-        - Dipole moment
+        - Dipole moment 
 
     - Loops of wire (Magnetic dipole)
         - Current
         - Origin (center of circle)
         - Radius
-
-        not user defined:
-        - Dipole moment
+        - Dipole moment (NOT user defined)
 
 All objects inherit an Object class. They have a methods named:
     - magnetic_field_strength(...)

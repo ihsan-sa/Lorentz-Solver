@@ -462,6 +462,7 @@ void sim4(){
     p1.simulate(space1, t, dt, Data, RK4_HYBRID);
     Vector::print(space1.electric_field_strength(Vector(1,0,0)));
     Vector::print(space1.electric_field_strength(Vector(-1,0,0)));
+    
 
 
 }

@@ -10,7 +10,8 @@ figure;
 
 plot3(simulation_data.x, simulation_data.y, simulation_data.z, '.', 'Color',[1,0,0]);
 hold on
-plot3(0,0,0,'gx')
+%plot3(1,0,0,'gx')
+%plot3(-3, 4,3.5, 'b*');
 xlabel('x');
 ylabel('y');
 zlabel('z');

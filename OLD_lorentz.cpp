@@ -605,8 +605,8 @@ void sim6_pointcharge(){
     Data<<"x, y,  z"<<std::endl;
     
     //set simulation time
-    long double t = 7000;
-    long double dt = 10e-2;
+    long double t = 100;
+    long double dt = 10e-5;
     
     //creating a uniform magnetic field
     Uniform_Electric_Field e1(Vector(0,0,0));
@@ -738,8 +738,9 @@ void sim7_plot_field(){
 }
 
 int main(){
-
-    sim7_plot_field();
+    std::cout<<"OLD SIM"<<std::endl;
+    primitize_sim();
+    std::cout<<"OLD SIM"<<std::endl;
 
     return 0;
 }

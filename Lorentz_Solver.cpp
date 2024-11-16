@@ -214,88 +214,16 @@ typedef class Particle : public Object{
     long double k = 8.99e9;
 
 public:
-    Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass){
-        this->position = init_pos;
-        this->velocity = init_vel;
-        this->mass = mass;
-        this->charge = charge;
-        this->next_position = init_pos; //initialize next pos with something random
-    }
-    Vector magnetic_field_strength(Vector const &position){
-        return Vector(0,0,0);
-    }
-    Vector electric_field_strength(Vector const &position){
+    Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass);
+    Vector magnetic_field_strength(Vector const &position);
+    Vector electric_field_strength(Vector const &position);
+    Vector lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt);
+    void compute_position(Space &space, long double dt);
+    void compute_position_RK4_HYBRID(Space &space, long double dt);
+    Vector update_position();
+    void simulate(Space &space, long double t, long double dt, std::ofstream &Data, Simulation_Type sim_type);
 
-        Vector OP = Vector::sub(position, this->position); //defining a vector from the origin to the point in space
-        long double r = Vector::norm(OP); //compute distance from point charge
-        //equation is E = kq/r^2. 
-        long double magnitude = (this->k * this->charge)/std::pow(r, 2);
-        OP = Vector::adjust_mag(OP, magnitude);
-
-        return OP;
-    }
-
-    Vector lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt){
-        Vector f_e = Vector::sc_mult(space.electric_field_strength(position), this->charge);
-        Vector f_b = Vector::cross(Vector::sc_mult(velocity, this->charge), space.magnetic_field_strength(position));
-        Vector net_force = Vector::add(f_e, f_b);
-        if(opt == NO_MASS) return net_force;
-        else if(opt == WITH_MASS) return Vector::sc_mult(net_force, 1/this->mass);
-        else return Vector(0,0,0); //FIX ERROR HANDLING
-    }
-    //Function to compute position using kinematic equations
-    void compute_position(Space &space, long double dt){
-        Vector acceleration = this->lorentz_force(space, this->position, this->velocity, WITH_MASS);
-        // Vector::print(force, 1);
-        // Vector::print(acceleration, 1);
-
-        Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
-        // Vector::print(dS, 1);
-        this->next_position = Vector::add(this->position, dS);
-        // Vector::print(this->velocity, 1);
-        this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
-        // Vector::print(this->velocity, 1);
-    }
-
-    //Function to compute position using RK4 method
-    void compute_position_RK4_HYBRID(Space &space, long double dt){
-        Vector v1 = this->lorentz_force(space, this->position, this->velocity, WITH_MASS);
-        Vector v2 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v1, dt/2)), WITH_MASS);
-        Vector v3 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v2, dt/2)), WITH_MASS);
-        Vector v4 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v3, dt)), WITH_MASS);
-        this->velocity = Vector::add(this->velocity, Vector::sc_mult(Vector::add(Vector::add(v1, Vector::sc_mult(v2, 2)),Vector::add(Vector::sc_mult(v3,2),v4)), dt/6));
-
-        Vector s1 = Vector::add(this->position, Vector::sc_mult(this->velocity, dt));
-        this->next_position = s1;
-    }   
-    Vector update_position(){
-        this->position = this->next_position;
-        return this->position;
-    }
-    void simulate(Space &space, long double t, long double dt, std::ofstream &Data, Simulation_Type sim_type){
-        //repeat code so that it only needs to compare sim type once
-        if (sim_type == KINEMATIC){
-            for(long i{0};i<t/dt;i++){
-                this->compute_position(space, dt);
-                Vector pos = update_position();
-                std::cout<<""<<i*100/(t/dt)<<'%'<<"\n";
-                // Vector::print(pos, CSV_F);
-                Vector::save_to_file(Data, pos, CSV_F);
-            }
-        }
-        if (sim_type == RK4_HYBRID){
-            for(long i{0};i<t/dt;i++){
-                this->compute_position_RK4_HYBRID(space, dt);
-                Vector pos = update_position();
-                std::cout<<""<<i*100/(t/dt)<<'%'<<"\n";
-                // Vector::print(pos, CSV_F);
-                Vector::save_to_file(Data, pos, CSV_F);
-            }
-        }
-    }
-
-
-} Particle;
+}Particle;
 
 
 //Space class for defining a simulation space
@@ -335,6 +263,87 @@ public:
 
 } Space;
 
+//definition for Particle class
+
+Particle::Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass){
+    this->position = init_pos;
+    this->velocity = init_vel;
+    this->mass = mass;
+    this->charge = charge;
+    this->next_position = init_pos; //initialize next pos with something random
+}
+Vector Particle::magnetic_field_strength(Vector const &position){
+    return Vector(0,0,0);
+}
+Vector Particle::electric_field_strength(Vector const &position){
+
+    Vector OP = Vector::sub(position, this->position); //defining a vector from the origin to the point in space
+    long double r = Vector::norm(OP); //compute distance from point charge
+    //equation is E = kq/r^2. 
+    long double magnitude = (this->k * this->charge)/std::pow(r, 2);
+    OP = Vector::adjust_mag(OP, magnitude);
+
+    return OP;
+}
+
+Vector Particle::lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt){
+    Vector f_e = Vector::sc_mult(space.electric_field_strength(position), this->charge);
+    Vector f_b = Vector::cross(Vector::sc_mult(velocity, this->charge), space.magnetic_field_strength(position));
+    Vector net_force = Vector::add(f_e, f_b);
+    if(opt == NO_MASS) return net_force;
+    else if(opt == WITH_MASS) return Vector::sc_mult(net_force, 1/this->mass);
+    else return Vector(0,0,0); //FIX ERROR HANDLING
+}
+//Function to compute position using kinematic equations
+void Particle::compute_position(Space &space, long double dt){
+    Vector acceleration = this->lorentz_force(space, this->position, this->velocity, WITH_MASS);
+    // Vector::print(force, 1);
+    // Vector::print(acceleration, 1);
+
+    Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
+    // Vector::print(dS, 1);
+    this->next_position = Vector::add(this->position, dS);
+    // Vector::print(this->velocity, 1);
+    this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
+    // Vector::print(this->velocity, 1);
+}
+
+//Function to compute position using RK4 method
+void Particle::compute_position_RK4_HYBRID(Space &space, long double dt){
+    Vector v1 = this->lorentz_force(space, this->position, this->velocity, WITH_MASS);
+    Vector v2 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v1, dt/2)), WITH_MASS);
+    Vector v3 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v2, dt/2)), WITH_MASS);
+    Vector v4 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v3, dt)), WITH_MASS);
+    this->velocity = Vector::add(this->velocity, Vector::sc_mult(Vector::add(Vector::add(v1, Vector::sc_mult(v2, 2)),Vector::add(Vector::sc_mult(v3,2),v4)), dt/6));
+
+    Vector s1 = Vector::add(this->position, Vector::sc_mult(this->velocity, dt));
+    this->next_position = s1;
+}   
+Vector Particle::update_position(){
+    this->position = this->next_position;
+    return this->position;
+}
+void Particle::simulate(Space &space, long double t, long double dt, std::ofstream &Data, Simulation_Type sim_type){
+    //repeat code so that it only needs to compare sim type once
+    if (sim_type == KINEMATIC){
+        for(long i{0};i<t/dt;i++){
+            this->compute_position(space, dt);
+            Vector pos = update_position();
+            std::cout<<""<<i*100/(t/dt)<<'%'<<"\n";
+            // Vector::print(pos, CSV_F);
+            Vector::save_to_file(Data, pos, CSV_F);
+        }
+    }
+    if (sim_type == RK4_HYBRID){
+        for(long i{0};i<t/dt;i++){
+            this->compute_position_RK4_HYBRID(space, dt);
+            Vector pos = update_position();
+            std::cout<<""<<i*100/(t/dt)<<'%'<<"\n";
+            // Vector::print(pos, CSV_F);
+            Vector::save_to_file(Data, pos, CSV_F);
+        }
+    }
+}
 
 //initial test for a very simple uniform magnetic field
 

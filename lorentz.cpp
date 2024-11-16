@@ -318,25 +318,25 @@ public:
         long double k4 = Vector::y_get(f4); 
         long double l4 = Vector::z_get(f4);
 
-        Vector new_velocity = Vector::add(this->velocity, )
+        // Vector new_velocity = Vector::add(this->velocity, );
 
 
 
 
 
 
-        Vector force = this->lorentz_force(space);
-        Vector acceleration = Vector::sc_mult(force, (1/this->mass));
-        // Vector::print(force, 1);
-        // Vector::print(acceleration, 1);
+        // Vector force = this->lorentz_force(space);
+        // Vector acceleration = Vector::sc_mult(force, (1/this->mass));
+        // // Vector::print(force, 1);
+        // // Vector::print(acceleration, 1);
 
-        Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
-        // Vector::print(dS, 1);
-        this->position = Vector::add(this->position, dS);
-        // Vector::print(this->velocity, 1);
-        this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
-        // Vector::print(this->velocity, 1);
-        return position;
+        // Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
+        // // Vector::print(dS, 1);
+        // this->position = Vector::add(this->position, dS);
+        // // Vector::print(this->velocity, 1);
+        // this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
+        // // Vector::print(this->velocity, 1);
+        return Vector(0,0,0); //CHANGE THIS!
     }
 
 } Particle;
@@ -708,17 +708,35 @@ void sim5_ufield(){
     Data.close();
 }
 
-void sim6_plot_field(){
+void sim7_plot_field(){
     //plotting the electric field due to a point charge
+
+    std::ofstream Data("field.csv");
+    Data<<"x,y,z,magnitude,"<<std::endl;
 
     Radial_Electric_Field e1(Vector(0,0,0), 1);
     std::cout<<Vector::norm(e1.field_vector(Vector(1,0,0)))<<std::endl;
+    std::cout<<Vector::norm(e1.field_vector(Vector(2,0,0)))<<std::endl;
+
+    long double small_bound = -0.2;
+    long double big_bound = -0.001;
+    long double spacing = 0.001;
+
+    for(long double x{small_bound}; x<big_bound; x+=spacing){
+        for(long double y{small_bound}; y<big_bound; y+=spacing){
+            for(long double z{0}; z<spacing; z+=spacing){
+                std::cout<<x<<", "<<y<<", "<<z<<", "<<Vector::norm(e1.field_vector(Vector(x,y,z)))<<std::endl;
+                Data<<x<<","<<y<<","<<z<<","<<Vector::norm(e1.field_vector(Vector(x,y,z)))<<","<<std::endl;
+            }
+        }
+    }
+
 
 }
 
 int main(){
 
-    sim6_pointcharge();
+    sim7_plot_field();
 
     return 0;
 }

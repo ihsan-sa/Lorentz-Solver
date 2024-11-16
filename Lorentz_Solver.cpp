@@ -616,14 +616,16 @@ void sim5_UMF(){
 }
 
 
-void sim_2_particle(){
+void sim_3_particle(){
 
     Particle p1(Vector(1,0,0),Vector(0,1,0), 0.00005, 1, "p1");
     Particle p2(Vector(-1,0,0),Vector(0,-1.5,0), -0.00005, 1, "p2");
+    Particle p3(Vector(0,0,-1),Vector(0,-1.5,0), -0.00005, 1, "p3");
 
     Space space1;
     space1.add_object(p1);
     space1.add_object(p2);
+    space1.add_object(p3);
 
     long double t = 3;
     long double dt = 0.001;
@@ -633,7 +635,7 @@ void sim_2_particle(){
 
 int main(){
 
-    sim3_UMF_UEF_PC();
+    sim_3_particle();
 
 
     return 0;

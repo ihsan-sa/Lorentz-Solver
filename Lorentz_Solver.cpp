@@ -314,6 +314,7 @@ public:
         }
     }
     void simulate(long double t, long double dt, Simulation_Type opt){
+        auto start = std::chrono::high_resolution_clock::now();
         if(opt == RK4_HYBRID){
             for(long i{0};i<t/dt;i++){
                 for(Particle* particle : particles){
@@ -326,6 +327,9 @@ public:
                 std::cout<<""<<i*100/(t/dt)<<'%'<<"\n";
             }
         }
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout<<"Elapsed time: "<<std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()*10e-7<<"s"<<std::endl;
+
     }
     void print_objects(){
         for(Object * obj : objects){
@@ -618,17 +622,20 @@ void sim5_UMF(){
 
 void sim_3_particle(){
 
-    Particle p1(Vector(1,0,0),Vector(0,1,0), 0.00005, 1, "p1");
-    Particle p2(Vector(-1,0,0),Vector(0,-1.5,0), -0.00005, 1, "p2");
-    Particle p3(Vector(0,0,-1),Vector(0,-1.5,0), -0.00005, 1, "p3");
+    Particle p1(Vector(1,0,0),Vector(0,0,0), 0.00005, 1, "p1");
+    Particle p2(Vector(-1,0,0),Vector(0,0,0), -0.00005, 1, "p2");
+    Particle p3(Vector(0,0,-1),Vector(0,0,0), -0.0001, 1, "p3");
+    Particle p4(Vector(0,0,0),Vector(0,0,0), 0.000001, 1, "p4");
+
 
     Space space1;
     space1.add_object(p1);
     space1.add_object(p2);
     space1.add_object(p3);
+    space1.add_object(p4);
 
     long double t = 3;
-    long double dt = 0.001;
+    long double dt = 0.0001;
     space1.simulate(t, dt, RK4_HYBRID);
 }
 

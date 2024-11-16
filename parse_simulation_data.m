@@ -4,6 +4,7 @@ addpath("C:\Users\ihsan\OneDrive\Documents\coding\ECE150\Lorentz-Solver")
 p1 = readtable("p1.csv");
 p2 = readtable("p2.csv");
 p3 = readtable("p3.csv");
+p4 = readtable("p4.csv");
 data = readtable("data.csv");
 
 figure;
@@ -16,6 +17,7 @@ hold on
 %plot3(data.x, data.y, data.z, '.', 'Color',[1,0,0]);
 plot3(p2.x, p2.y, p2.z, '.', 'Color','b');
 plot3(p3.x, p3.y, p3.z, '.', 'Color','g');
+plot3(p4.x, p4.y, p4.z, '.', 'Color','y');
 %plot3(-1,0,0,'b*') %plot particle start
 plot3(1,0,0,'r*') %plot particle start
 

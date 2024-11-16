@@ -3,6 +3,8 @@
 #include <vector> //for creating the dynamic storage of objects in the space
 #include <fstream> //for writing to files
 #include <chrono> //for timing
+#include <string>
+#include <cassert>
 
 #define PI 3.141592
 /*
@@ -80,7 +82,12 @@ public:
         return sqrt((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
     }
     static Vector adjust_mag(Vector const &v, long double const &mag){
-        long double scaling_const = mag/Vector::norm(v);
+        long double norm = Vector::norm(v);
+        if(norm == 0){
+            std::cout<<"ERR norm == 0"<<std::endl;
+            assert(norm != 0);
+        }
+        long double scaling_const = mag/norm;
         return Vector::sc_mult(v, scaling_const);
     }
     static long double x_get(Vector const &v) {return v.x;}
@@ -91,6 +98,7 @@ public:
 //std Object class
 typedef class Object{
 public:
+    std::string name;
     virtual Vector magnetic_field_strength(Vector const &position) = 0;
     virtual Vector electric_field_strength(Vector const &position) = 0;
 } Object;
@@ -101,6 +109,7 @@ typedef class Uniform_Magnetic_Field : public Object {
 public:
     Uniform_Magnetic_Field(Vector const &direction, long double const &magnitude){ //passing by reference to reduce amount of memory used
         this->magnetic_field_vector = Vector::adjust_mag(direction, magnitude);
+        this->name = "UMF";
     }
     // Uniform_Magnetic_Field() : direction(Vector(0,0,0)), magnitude(0) {} //default constructor
     Vector magnetic_field_strength(Vector const &position){
@@ -116,6 +125,7 @@ typedef class Uniform_Electric_Field : public Object {
 public:
     Uniform_Electric_Field(Vector const &direction, long double const &magnitude){ //passing by reference to reduce amount of memory used
         this->electric_field_vector = Vector::adjust_mag(direction, magnitude);
+        this->name = "UEF";
     }
     // Uniform_Magnetic_Field() : direction(Vector(0,0,0)), magnitude(0) {} //default constructor
     Vector magnetic_field_strength(Vector const &position){
@@ -134,6 +144,7 @@ public:
     Static_Point_Charge(Vector const &origin, long double charge){
         this->charge = charge;
         this->origin = origin;
+        this->name = "SPC";
     }
     Vector magnetic_field_strength(Vector const &position){
         return Vector(0,0,0);
@@ -153,6 +164,7 @@ public:
 typedef class Wire : public Object{
     Vector wire_direction; 
     Vector origin;
+    std::string name;
     long double mu_0 = 4*PI*pow(10,-7); // permeability of free space
     long double i_wire; // current through the wire
 
@@ -161,6 +173,7 @@ public:
         this->i_wire = i_wire;
         this->wire_direction = wire_direction;
         this->origin = origin;
+        this->name = "Wire";
     }
     Wire() : origin(Vector(0,0,0)), wire_direction(Vector(0,0,0)), i_wire(0) {}
     //return the field vector at a given position
@@ -212,9 +225,9 @@ typedef class Particle : public Object{
     long double charge;
     long double mass;
     long double k = 8.99e9;
-
+    std::ofstream Data;
 public:
-    Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass);
+    Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass, std::string name);
     Vector magnetic_field_strength(Vector const &position);
     Vector electric_field_strength(Vector const &position);
     Vector lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt);
@@ -222,17 +235,22 @@ public:
     void compute_position_RK4_HYBRID(Space &space, long double dt);
     Vector update_position();
     void simulate(Space &space, long double t, long double dt, std::ofstream &Data, Simulation_Type sim_type);
+    void save_position();
 
 }Particle;
 
 //def for Particle class
 
-Particle::Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass){
+Particle::Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass, std::string name){
     this->position = init_pos;
     this->velocity = init_vel;
     this->mass = mass;
     this->charge = charge;
     this->next_position = init_pos; //initialize next pos with something random
+    this->name = name;
+    std::string file_name = name + ".csv";
+    this->Data = std::ofstream(file_name);
+    this->Data<<"x,y,z"<<std::endl;
 }
 Vector Particle::magnetic_field_strength(Vector const &position){
     return Vector(0,0,0);
@@ -247,7 +265,9 @@ Vector Particle::electric_field_strength(Vector const &position){
 
     return OP;
 }
-
+void Particle::save_position(){
+    Vector::save_to_file(this->Data, this->position, CSV_F);
+}
 
 
 //Space class for defining a simulation space
@@ -276,6 +296,15 @@ public:
         }
         return electric_field_strength;
     }
+    Vector electric_field_strength(Vector const &position, std::string name){
+        Vector electric_field_strength(0,0,0);
+        for(Object* object : objects){
+            if(object->name != name){
+                electric_field_strength = Vector::add(electric_field_strength, object->electric_field_strength(position));
+            }
+        }
+        return electric_field_strength;
+    }
     void delete_space(){
         for(Object* object : objects){
             delete object;
@@ -284,13 +313,32 @@ public:
             delete particle;
         }
     }
+    void simulate(long double t, long double dt, Simulation_Type opt){
+        if(opt == RK4_HYBRID){
+            for(long i{0};i<t/dt;i++){
+                for(Particle* particle : particles){
+                    particle->compute_position_RK4_HYBRID(*this, dt);
+                }
+                for(Particle* particle : particles){
+                    particle->update_position();
+                    particle->save_position();
+                }
+                std::cout<<""<<i*100/(t/dt)<<'%'<<"\n";
+            }
+        }
+    }
+    void print_objects(){
+        for(Object * obj : objects){
+            std::cout<<obj->name<<std::endl;
+        }
+    }
 
 } Space;
 
 //definition for Particle class
 
 Vector Particle::lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt){
-    Vector f_e = Vector::sc_mult(space.electric_field_strength(position), this->charge);
+    Vector f_e = Vector::sc_mult(space.electric_field_strength(position, this->name), this->charge);
     Vector f_b = Vector::cross(Vector::sc_mult(velocity, this->charge), space.magnetic_field_strength(position));
     Vector net_force = Vector::add(f_e, f_b);
     if(opt == NO_MASS) return net_force;
@@ -373,7 +421,7 @@ void sim1_UMF(){
     Vector p1_init_vel(1,1,1);
     long double p1_mass = 1;
     long double p1_charge = 1;
-    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass);
+    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass, "p1");
 
     //set simulation parameters
     long double t = 20;
@@ -387,11 +435,6 @@ void sim1_UMF(){
 //test with both uniform magnetic and electric fields
 
 void sim2_UMF_UEF(){
-    //Start by opening the data file and initializing it
-
-    std::ofstream Data("data.csv");
-    
-    Data<<"x,y,z"<<std::endl;
 
     //creating a space
     Space space1;
@@ -414,25 +457,25 @@ void sim2_UMF_UEF(){
     Vector p1_init_vel(1,1,1);
     long double p1_mass = 1;
     long double p1_charge = 1;
-    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass);
+    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass, "p1");
+
+    space1.add_object(p1);
 
     //set simulation parameters
     long double t = 20;
     long double dt = 0.01;
 
     //run simulation
-    p1.simulate(space1, t, dt, Data, RK4_HYBRID);
+    space1.simulate(t, dt, RK4_HYBRID);
+    space1.print_objects();
 
 }
 
 //test with uniform mag field, uniform elec field and point charge
 void sim3_UMF_UEF_PC(){
     //Start by opening the data file and initializing it
-
     std::ofstream Data("data.csv");
-    
     Data<<"x,y,z"<<std::endl;
-
     //creating a space
     Space space1;
 
@@ -451,9 +494,9 @@ void sim3_UMF_UEF_PC(){
 
     //add object to space
     space1.add_object(m1);
-    // space1.add_object(e1);
+    space1.add_object(e1);
     space1.add_object(e2);
-    // space1.add_object(e3);
+    space1.add_object(e3);
     space1.add_object(e4);
 
     //create a particle
@@ -461,14 +504,15 @@ void sim3_UMF_UEF_PC(){
     Vector p1_init_vel(0,0,0);
     long double p1_mass = 1;
     long double p1_charge = -1;
-    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass);
+    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass, "p1");
 
+    space1.add_object(p1);
     //set simulation parameters
     long double t = 500;
     long double dt = 0.01;
 
     //run simulation
-    p1.simulate(space1, t, dt, Data, RK4_HYBRID);
+    space1.simulate(t,dt,RK4_HYBRID);
 }
 
 //particle orbiting a static charge
@@ -476,9 +520,6 @@ void sim3_UMF_UEF_PC(){
 void sim4(){
 //Start by opening the data file and initializing it
 
-    std::ofstream Data("data.csv");
-    
-    Data<<"x,y,z"<<std::endl;
 
     //creating a space
     Space space1;
@@ -497,23 +538,22 @@ void sim4(){
     Vector p1_init_vel(0,1,1);
     long double p1_mass = 100;
     long double p1_charge = 10e-6;
-    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass);
+    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass, "p1");
 
     //set simulation parameters
     long double t = 20;
     long double dt = 0.0001;
 
+    space1.add_object(p1);
     //run simulation
-    p1.simulate(space1, t, dt, Data, RK4_HYBRID);
-    Vector::print(space1.electric_field_strength(Vector(1,0,0)));
-    Vector::print(space1.electric_field_strength(Vector(-1,0,0)));
+    space1.simulate(t, dt, RK4_HYBRID);
 
 
 }
 
 //
 
-void primitize_sim(){
+void primitive_sim(){
 
     //creating the magnetic field
     long double current = 1000;
@@ -538,9 +578,63 @@ void primitize_sim(){
     std::cout<<Vector::norm(sum)<<std::endl;
 }
 
+//sim1 updated for simulation in space
+void sim5_UMF(){
+    //Start by opening the data file and initializing it
+
+    std::ofstream Data("data.csv");
+    
+    Data<<"x,y,z"<<std::endl;
+
+    //creating a space
+    Space space1;
+
+    //creating objects
+    Vector m1_direction(0,0,1);
+    long double m1_strength = 1;
+    Uniform_Magnetic_Field m1(m1_direction, m1_strength);
+
+    //add object to space
+    space1.add_object(m1);
+
+    //create a particle
+    Vector p1_init_pos(0,0,0);
+    Vector p1_init_vel(1,1,1);
+    long double p1_mass = 1;
+    long double p1_charge = 1;
+    Particle p1(p1_init_pos, p1_init_vel, p1_charge, p1_mass, "p1");
+
+    space1.add_object(p1);
+
+    //set simulation parameters
+    long double t = 20;
+    long double dt = 0.1;
+
+    space1.print_objects();
+    //run simulation
+    space1.simulate(t, dt, RK4_HYBRID);
+}
+
+
+void sim_2_particle(){
+
+    Particle p1(Vector(1,0,0),Vector(0,1,0), 0.00005, 1, "p1");
+    Particle p2(Vector(-1,0,0),Vector(0,-1.5,0), -0.00005, 1, "p2");
+
+    Space space1;
+    space1.add_object(p1);
+    space1.add_object(p2);
+
+    long double t = 3;
+    long double dt = 0.001;
+    space1.simulate(t, dt, RK4_HYBRID);
+}
+
+
 int main(){
 
-    sim4();
+    sim3_UMF_UEF_PC();
+
 
     return 0;
 }

@@ -1,18 +1,22 @@
 clc, clearvars, clear all
 
 addpath("C:\Users\ihsan\OneDrive\Documents\coding\ECE150\Other_CPP\Lorentz-Solver")
-simulation_data = readtable("data.csv");
-wire_data = readtable("wire_data.csv");
+p1 = readtable("p1.csv");
+p2 = readtable("p2.csv");
+data = readtable("data.csv");
 
 figure;
 
 %plot3(wire_data.x, wire_data.y, wire_data.z, 'Color',[.7,.2,0.7]); %plot a
 %wire
 %hold on
-
-plot3(simulation_data.x, simulation_data.y, simulation_data.z, '.', 'Color',[1,0,0]);
+plot3(p1.x, p1.y, p1.z, '.', 'Color',[1,0,0]);
 hold on
-%plot3(1,0,0,'gx') %plot particle start
+%plot3(data.x, data.y, data.z, '.', 'Color',[1,0,0]);
+%plot3(p2.x, p2.y, p2.z, '.', 'Color','b');
+%plot3(-1,0,0,'b*') %plot particle start
+plot3(1,0,0,'r*') %plot particle start
+
 %plot3(-3, 4,3.5, 'b*'); %plot a charge
 xlabel('x');
 ylabel('y');

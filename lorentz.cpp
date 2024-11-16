@@ -62,6 +62,9 @@ public:
         long double scaling_const = mag/Vector::norm(v);
         return Vector::sc_mult(v, scaling_const);
     }
+    static long double x_get(Vector const &v) {return v.x;}
+    static long double y_get(Vector const &v) {return v.y;}
+    static long double z_get(Vector const &v) {return v.z;}
 } Vector;
 
 typedef class Field_Generic{
@@ -226,7 +229,6 @@ public:
 
 }Space;
 
-
 typedef class Particle{
     Vector position;
     Vector velocity;
@@ -263,11 +265,66 @@ public:
     }
     //temporarily overload the function for testing 
     Vector lorentz_force(Space &space){
-        Vector force = Vector::add(Vector::sc_mult(space.electric_field(this->position), this->charge), Vector::cross(Vector::sc_mult(this->velocity,this->charge), space.magnetic_field(this->position)));
+        // Vector force = Vector::add(Vector::sc_mult(space.electric_field(this->position), this->charge), Vector::cross(Vector::sc_mult(this->velocity,this->charge), space.magnetic_field(this->position)));
+        Vector F_e = Vector::sc_mult(space.electric_field(this->position), this->charge);
+        Vector F_b = Vector::cross(Vector::sc_mult(this->velocity,this->charge), space.magnetic_field(this->position));
+        Vector force = Vector::add(F_e,F_b);
+        return force;
+    } 
+    //other version used for RK4
+    Vector lorentz_force(Space &space, Vector const &pos){
+        // Vector force = Vector::add(Vector::sc_mult(space.electric_field(this->position), this->charge), Vector::cross(Vector::sc_mult(this->velocity,this->charge), space.magnetic_field(this->position)));
+        Vector F_e = Vector::sc_mult(space.electric_field(pos), this->charge);
+        Vector F_b = Vector::cross(Vector::sc_mult(this->velocity,this->charge), space.magnetic_field(pos));
+        Vector force = Vector::add(F_e,F_b);
         return force;
     } 
     //compute acceleration for a time t
     Vector compute_position(Space &space, long double dt){
+        Vector force = this->lorentz_force(space);
+        Vector acceleration = Vector::sc_mult(force, (1/this->mass));
+        // Vector::print(force, 1);
+        // Vector::print(acceleration, 1);
+
+        Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
+        // Vector::print(dS, 1);
+        this->position = Vector::add(this->position, dS);
+        // Vector::print(this->velocity, 1);
+        this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
+        // Vector::print(this->velocity, 1);
+        return position;
+    }
+    Vector compute_positionRK4(Space &space, long double dt){
+
+        //velocity calculations
+
+        Vector f1 = Vector::sc_mult(this->lorentz_force(space), 1/this->mass);
+        long double m1 = Vector::x_get(f1);  //x component
+        long double k1 = Vector::y_get(f1);  //y component
+        long double l1 = Vector::z_get(f1);  //z component
+
+        Vector f2 = Vector::sc_mult(this->lorentz_force(space, Vector::add(this->position, Vector::sc_mult(Vector(m1, k1, l1), dt/2))), 1/this->mass);
+        long double m2 = Vector::x_get(f2); 
+        long double k2 = Vector::y_get(f2); 
+        long double l2 = Vector::z_get(f2); 
+
+        Vector f3 = Vector::sc_mult(this->lorentz_force(space, Vector::add(this->position, Vector::sc_mult(Vector(m2, k2, l2), dt/2))), 1/this->mass);
+        long double m3 = Vector::x_get(f3); 
+        long double k3 = Vector::y_get(f3); 
+        long double l3 = Vector::z_get(f3);
+
+        Vector f4 = Vector::sc_mult(this->lorentz_force(space, Vector::add(this->position, Vector::sc_mult(Vector(m3, k3, l3), dt))), 1/this->mass);
+        long double m4 = Vector::x_get(f4); 
+        long double k4 = Vector::y_get(f4); 
+        long double l4 = Vector::z_get(f4);
+
+        Vector new_velocity = Vector::add(this->velocity, )
+
+
+
+
+
+
         Vector force = this->lorentz_force(space);
         Vector acceleration = Vector::sc_mult(force, (1/this->mass));
         // Vector::print(force, 1);
@@ -545,26 +602,40 @@ void sim6_pointcharge(){
     Data<<"x, y,  z"<<std::endl;
     
     //set simulation time
-    long double t = 27;
-    long double dt = 0.001;
+    long double t = 7000;
+    long double dt = 10e-2;
     
     //creating a uniform magnetic field
-    Radial_Electric_Field e1(Vector(0,0,0),1);
+    Uniform_Electric_Field e1(Vector(0,0,0));
+    Radial_Electric_Field e2(Vector(0,-600,100),0.0005);
+    Radial_Electric_Field e3(Vector(0,-400,750),-0.0005);
+    Radial_Electric_Field e4(Vector(-3000,0,0),0.001);
+    Data<<"0,0,0"<<std::endl;
+    Data<<"0,4,4"<<std::endl;
+    long double mu_0 = 4*PI*pow(10,-7);
+    Uniform_Magnetic_Field m1(Vector(0,0,0.1));
+    Wire_Magnetic_Field m2(Vector(-4000, 3000,0),Vector(1,2,-2), 10000, mu_0);
 
     
 
 
     //creating the space;
     Space space1;
-    space1.add_REF(e1);
+    space1.add_UEF(e1);
+    space1.add_REF(e2);
+    space1.add_REF(e3);
+    space1.add_REF(e4);
+    space1.add_UMF(m1);
+    // space1.add_WMF(m2);
    
 
     //creating the first particle
     Vector velocity(0,0,0);
-    Vector position(1,0.0,0);
+    Vector position(0,0,0);
+    // Data<<"1,0,0"<<std::endl;
     long double q = 1.6*pow(10, -19); //charge of a proton
     long double m_p = 1.672621898*pow(10, -27); //mass of a proton
-    Particle p1(position, velocity, -1, 0.475);
+    Particle p1(position, velocity, -1, 1);
 
 
 
@@ -637,10 +708,17 @@ void sim5_ufield(){
     Data.close();
 }
 
+void sim6_plot_field(){
+    //plotting the electric field due to a point charge
+
+    Radial_Electric_Field e1(Vector(0,0,0), 1);
+    std::cout<<Vector::norm(e1.field_vector(Vector(1,0,0)))<<std::endl;
+
+}
 
 int main(){
 
-    sim4_ufields();
+    sim6_pointcharge();
 
     return 0;
 }

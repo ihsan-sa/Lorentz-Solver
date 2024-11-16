@@ -1,5 +1,6 @@
 clc, clearvars, clear all
 
+addpath("C:\Users\ihsan\OneDrive\Documents\coding\ECE150\Other_CPP\Lorentz-Solver")
 simulation_data = readtable("data.csv");
 wire_data = readtable("wire_data.csv");
 

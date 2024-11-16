@@ -225,6 +225,30 @@ public:
 
 }Particle;
 
+//def for Particle class
+
+Particle::Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass){
+    this->position = init_pos;
+    this->velocity = init_vel;
+    this->mass = mass;
+    this->charge = charge;
+    this->next_position = init_pos; //initialize next pos with something random
+}
+Vector Particle::magnetic_field_strength(Vector const &position){
+    return Vector(0,0,0);
+}
+Vector Particle::electric_field_strength(Vector const &position){
+
+    Vector OP = Vector::sub(position, this->position); //defining a vector from the origin to the point in space
+    long double r = Vector::norm(OP); //compute distance from point charge
+    //equation is E = kq/r^2. 
+    long double magnitude = (this->k * this->charge)/std::pow(r, 2);
+    OP = Vector::adjust_mag(OP, magnitude);
+
+    return OP;
+}
+
+
 
 //Space class for defining a simulation space
 typedef class Space : public Object{
@@ -264,27 +288,6 @@ public:
 } Space;
 
 //definition for Particle class
-
-Particle::Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass){
-    this->position = init_pos;
-    this->velocity = init_vel;
-    this->mass = mass;
-    this->charge = charge;
-    this->next_position = init_pos; //initialize next pos with something random
-}
-Vector Particle::magnetic_field_strength(Vector const &position){
-    return Vector(0,0,0);
-}
-Vector Particle::electric_field_strength(Vector const &position){
-
-    Vector OP = Vector::sub(position, this->position); //defining a vector from the origin to the point in space
-    long double r = Vector::norm(OP); //compute distance from point charge
-    //equation is E = kq/r^2. 
-    long double magnitude = (this->k * this->charge)/std::pow(r, 2);
-    OP = Vector::adjust_mag(OP, magnitude);
-
-    return OP;
-}
 
 Vector Particle::lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt){
     Vector f_e = Vector::sc_mult(space.electric_field_strength(position), this->charge);

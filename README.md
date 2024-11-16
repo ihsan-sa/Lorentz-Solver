@@ -1,6 +1,14 @@
 # Lorentz Solver
 
-This is a Lorentz Solver which allows for the simulation of particles moving through a space with various objects within it. 
+This is a Lorentz Solver which simulates particles moving through a space with various objects within it. 
+
+## Files in this repository
+
+Use `Lorentz_Solver.cpp` as it is the most capable solver.
+
+Read instructions below, then compile and run the program.
+
+Then run the MATLAB script to parse and plot the data.
 
 ## Overview of the code structure
 

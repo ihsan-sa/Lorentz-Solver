@@ -8,7 +8,7 @@ Use `Lorentz_Solver.cpp` as it is the most capable solver.
 
 Read instructions below, then compile and run the program.
 
-Then run the MATLAB script to parse and plot the data.
+Then run the `parse_simulation_data.m` MATLAB script to parse and plot the data.
 
 ## Overview of the code structure
 

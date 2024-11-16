@@ -373,7 +373,7 @@ void sim2_UMF_UEF(){
 
     //set simulation parameters
     long double t = 20;
-    long double dt = 0.1;
+    long double dt = 0.01;
 
     //run simulation
     p1.simulate(space1, t, dt, Data, RK4_HYBRID);
@@ -494,11 +494,8 @@ void primitize_sim(){
 }
 
 int main(){
-    std::cout<<"New SIM"<<std::endl;
 
-    primitize_sim();
-    
-    std::cout<<"New SIM"<<std::endl;
+    sim4();
 
     return 0;
 }

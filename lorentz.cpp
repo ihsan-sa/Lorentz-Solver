@@ -72,6 +72,8 @@ public:
     virtual Vector field_vector(Vector const &position) = 0;
 }Field_Generic;
 
+
+
 typedef class Wire_Magnetic_Field : public Field_Generic{
     Vector wire_direction; 
     Vector origin;
@@ -340,6 +342,7 @@ public:
     }
 
 } Particle;
+
 
 void sim2_wirefield(){
     

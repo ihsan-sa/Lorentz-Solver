@@ -1,6 +1,5 @@
 clc, clearvars, clear all
 
-addpath("C:\Users\ihsan\OneDrive\Documents\coding\ECE150\Lorentz-Solver")
 p1 = readtable("p1.csv");
 p2 = readtable("p2.csv");
 p3 = readtable("p3.csv");

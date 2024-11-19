@@ -97,7 +97,13 @@ public:
     Vector operator+(Vector const &v2){ //addition
         return Vector(this->x + v2.x, this->y + v2.y, this->z + v2.z);
     }
+    Vector operator+(Vector &v2){ //addition
+        return Vector(this->x + v2.x, this->y + v2.y, this->z + v2.z);
+    }
     Vector operator-(Vector const &v2){  //subtraction
+        return Vector(this->x - v2.x, this->y - v2.y, this->z - v2.z);
+    }
+    Vector operator-(Vector &v2){  //subtraction
         return Vector(this->x - v2.x, this->y - v2.y, this->z - v2.z);
     }
     Vector operator*(Vector v2){ //cross prod
@@ -125,6 +131,18 @@ std::ostream &operator<<(std::ostream &output, Vector const &v){ //print
     output <<"[ "<<Vector::x_get(v)<<", "<<Vector::y_get(v)<<", "<<Vector::z_get(v)<<" ]";
     return output;
 }
+
+Vector operator-(Vector const &v1, Vector v2){  //subtraction
+    return Vector(Vector::x_get(v1)- Vector::x_get(v2), Vector::y_get(v1)- Vector::y_get(v2), Vector::z_get(v1)- Vector::z_get(v2));
+}
+Vector operator+(Vector const &v1, Vector v2){  //subtraction
+    return Vector(Vector::x_get(v1) + Vector::x_get(v2), Vector::y_get(v1) + Vector::y_get(v2), Vector::z_get(v1) + Vector::z_get(v2));
+}
+
+    
+
+
+
 
 //std Object class
 typedef class Object{
@@ -182,7 +200,8 @@ public:
     }
     Vector electric_field_strength(Vector const &position){
 
-        Vector OP = Vector::sub(position, this->origin); //defining a vector from the origin to the point in space
+        // Vector OP = Vector::sub(position, this->origin); //OLD
+        Vector OP = position - this->origin; //defining a vector from the origin to the point in space
         long double r = Vector::norm(OP); //compute distance from point charge
         //equation is E = kq/r^2. 
         long double magnitude = (this->k * this->charge)/std::pow(r, 2);
@@ -214,18 +233,22 @@ public:
         //we use the perp formula
         //consider O the origin of wire and P the position of particle
 
-        Vector OP = Vector::sub(position, this->origin);
-        Vector perp = Vector::sub(OP, Vector::sc_mult(this->wire_direction, (Vector::dot(OP,this->wire_direction))/(Vector::dot(wire_direction, wire_direction))));
+        // Vector OP = Vector::sub(position, this->origin); //OLD
+        Vector OP = position - this->origin;
+        // Vector perp = Vector::sub(OP, Vector::sc_mult(this->wire_direction, (Vector::dot(OP,this->wire_direction))/(Vector::dot(wire_direction, wire_direction)))); //OLD
+        Vector perp = OP - (((OP % this->wire_direction)/(wire_direction % wire_direction)) * this->wire_direction);
         long double radius = Vector::norm(perp); // dist from the wire to point
 
         //now, recall B = k/r
         long double k_wire = mu_0*i_wire/(2*PI);  //shorthand for the B equation: B = (mu/2PI)*(I/r) = k/r
 
         long double field_strength = k_wire/radius; // calculate field strength magnitude
-        Vector field_dir = Vector::cross(this->wire_direction, perp);  //determine the field direction vector
+        // Vector field_dir = Vector::cross(this->wire_direction, perp);  //OLD
+        Vector field_dir = this->wire_direction * perp; //determine the field direction vector
         long double scaling_constant = field_strength/Vector::norm(field_dir);  //determine the scaling constant required to get the right magnitude
 
-        Vector field_vec = Vector::sc_mult(field_dir, scaling_constant); // compute final field vector
+        // Vector field_vec = Vector::sc_mult(field_dir, scaling_constant); //OLD
+        Vector field_vec = scaling_constant * field_dir; // compute final field vector
         return field_vec;
     }
     Vector electric_field_strength(Vector const &position){
@@ -240,7 +263,8 @@ public:
             Vector::save_to_file(file, point_on_wire, CSV_F);
             std::cout<<"wire: "<<i*100/(t/dt)<<'%'<<" \n";
             // Vector::print(point_on_wire, CSV_F);
-            point_on_wire = Vector::add(point_on_wire, Vector::sc_mult(this->wire_direction, 0.00002));
+            // point_on_wire = Vector::add(point_on_wire, Vector::sc_mult(this->wire_direction, 0.00002)); //OLD
+            point_on_wire = point_on_wire + (0.00002 * this->wire_direction);
         }
     }
 } Wire;
@@ -288,7 +312,8 @@ Vector Particle::magnetic_field_strength(Vector const &position){
 }
 Vector Particle::electric_field_strength(Vector const &position){
 
-    Vector OP = Vector::sub(position, this->position); //defining a vector from the origin to the point in space
+    // Vector OP = Vector::sub(position, this->position); //OLD
+    Vector OP = position  - this->position; //defining a vector from the origin to the point in space
     long double r = Vector::norm(OP); //compute distance from point charge
     //equation is E = kq/r^2. 
     long double magnitude = (this->k * this->charge)/std::pow(r, 2);
@@ -316,14 +341,16 @@ public:
     Vector magnetic_field_strength(Vector const &position){
         Vector magnetic_field_strength(0,0,0);
         for(Object* object : objects){
-            magnetic_field_strength = Vector::add(magnetic_field_strength, object->magnetic_field_strength(position));
+            // magnetic_field_strength = Vector::add(magnetic_field_strength, object->magnetic_field_strength(position)); //OLD
+            magnetic_field_strength = magnetic_field_strength + object->magnetic_field_strength(position);
         }
         return magnetic_field_strength;
     }
     Vector electric_field_strength(Vector const &position){
         Vector electric_field_strength(0,0,0);
         for(Object* object : objects){
-            electric_field_strength = Vector::add(electric_field_strength, object->electric_field_strength(position));
+            // electric_field_strength = Vector::add(electric_field_strength, object->electric_field_strength(position)); //OLD
+            electric_field_strength = electric_field_strength + object->electric_field_strength(position);
         }
         return electric_field_strength;
     }
@@ -331,7 +358,9 @@ public:
         Vector electric_field_strength(0,0,0);
         for(Object* object : objects){
             if(object->name != name){
-                electric_field_strength = Vector::add(electric_field_strength, object->electric_field_strength(position));
+                // electric_field_strength = Vector::add(electric_field_strength, object->electric_field_strength(position)); //OLD
+                electric_field_strength = electric_field_strength + object->electric_field_strength(position);
+
             }
         }
         return electric_field_strength;
@@ -373,9 +402,17 @@ public:
 //definition for Particle class
 
 Vector Particle::lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt){
-    Vector f_e = Vector::sc_mult(space.electric_field_strength(position, this->name), this->charge);
-    Vector f_b = Vector::cross(Vector::sc_mult(velocity, this->charge), space.magnetic_field_strength(position));
-    Vector net_force = Vector::add(f_e, f_b);
+
+    // //OLD WAY
+    // Vector f_e = Vector::sc_mult(space.electric_field_strength(position, this->name), this->charge);
+    // Vector f_b = Vector::cross(Vector::sc_mult(velocity, this->charge), space.magnetic_field_strength(position));
+    // Vector net_force = Vector::add(f_e, f_b);
+
+    Vector f_e = this->charge * space.electric_field_strength(position, this->name);
+    Vector f_b = (this->charge * velocity) * space.magnetic_field_strength(position);
+    Vector net_force = f_e + f_b;
+
+
     if(opt == NO_MASS) return net_force;
     else if(opt == WITH_MASS) return Vector::sc_mult(net_force, 1/this->mass);
     else return Vector(0,0,0); //FIX ERROR HANDLING
@@ -386,23 +423,36 @@ void Particle::compute_position(Space &space, long double dt){
     // Vector::print(force, 1);
     // Vector::print(acceleration, 1);
 
-    Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2)));
+    // Vector dS = Vector::add(Vector::sc_mult(this->velocity, dt), Vector::sc_mult(acceleration, 0.5*pow(dt,2))); //OLD
+    Vector dS = (dt * this->velocity) + (0.5*pow(dt,2) * acceleration);
     // Vector::print(dS, 1);
-    this->next_position = Vector::add(this->position, dS);
+    // this->next_position = Vector::add(this->position, dS); //OLD
+    this->next_position = this->position + dS;
     // Vector::print(this->velocity, 1);
-    this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt));
+    // this->velocity = Vector::add(this->velocity, Vector::sc_mult(acceleration, dt)); //OLD
+    this->velocity = this->velocity + (dt * acceleration);
     // Vector::print(this->velocity, 1);
 }
 
 //Function to compute position using RK4 method
 void Particle::compute_position_RK4_HYBRID(Space &space, long double dt){
     Vector v1 = this->lorentz_force(space, this->position, this->velocity, WITH_MASS);
-    Vector v2 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v1, dt/2)), WITH_MASS);
-    Vector v3 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v2, dt/2)), WITH_MASS);
-    Vector v4 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v3, dt)), WITH_MASS);
-    this->velocity = Vector::add(this->velocity, Vector::sc_mult(Vector::add(Vector::add(v1, Vector::sc_mult(v2, 2)),Vector::add(Vector::sc_mult(v3,2),v4)), dt/6));
+    //OLD
+    // Vector v2 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v1, dt/2)), WITH_MASS);
+    // Vector v3 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v2, dt/2)), WITH_MASS);
+    // Vector v4 = this->lorentz_force(space, this->position, Vector::add(this->velocity, Vector::sc_mult(v3, dt)), WITH_MASS);
 
-    Vector s1 = Vector::add(this->position, Vector::sc_mult(this->velocity, dt));
+    Vector v2 = this->lorentz_force(space, this->position, (this->velocity + (v1 * (dt/2))), WITH_MASS);
+    Vector v3 = this->lorentz_force(space, this->position, (this->velocity + (v2 * (dt/2))), WITH_MASS);
+    Vector v4 = this->lorentz_force(space, this->position, (this->velocity + (v3 * dt)), WITH_MASS);
+
+    //OLD
+    // this->velocity = Vector::add(this->velocity, Vector::sc_mult(Vector::add(Vector::add(v1, Vector::sc_mult(v2, 2)),Vector::add(Vector::sc_mult(v3,2),v4)), dt/6));
+    this->velocity = this->velocity + ((v1 + (2 * v2) + (2 * v3) + v4) * (dt/6));
+
+    // Vector s1 = Vector::add(this->position, Vector::sc_mult(this->velocity, dt)); //OLD
+    Vector s1 = this->position + (dt * this->velocity);
+
     this->next_position = s1;
 }   
 Vector Particle::update_position(){
@@ -673,7 +723,7 @@ void sim_3_particle(){
 
 int main(){
 
-    sim_3_particle();
+    sim2_UMF_UEF();
 
 
     return 0;

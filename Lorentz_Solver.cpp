@@ -1,3 +1,5 @@
+#include "Vector.hpp"
+
 #include <iostream> //for std I/O
 #include <cmath> //for basic math (eg. pow())
 #include <vector> //for creating the dynamic storage of objects in the space
@@ -15,11 +17,6 @@ Ihsan S. Novemeber 2024
 
 //Enums used to define function/simulation options
 
-typedef enum VFormat_Opt{
-    NL, //new line
-    NR, //no return
-    CSV_F, //CSV Format
-}VFormat_Opt;
 
 typedef enum Lorentz_Calculation_Opt{
     NO_MASS,
@@ -31,115 +28,6 @@ typedef enum Simulation_Type{
     RK4_HYBRID
 } Simulation_Type;
 
-//Vector class made to allow for vector algebra
-typedef class Vector{
-    long double x;
-    long double y;
-    long double z;
-
-public:
-    Vector(long double x, long double y, long double z){
-        this->x = x;
-        this->y = y;
-        this->z = z;
-    }
-    Vector() : x(0), y(0), z(0){}
-    static Vector cross(Vector v1, Vector v2){
-
-        long double new_x = (v1.y * v2.z) - (v1.z * v2.y);
-        long double new_y = (v1.z * v2.x) - (v1.x * v2.z);  
-        long double new_z = (v1.x * v2.y) - (v1.y * v2.x);
-        Vector result(new_x, new_y, new_z);
-
-        return result;
-    }
-    static long double dot(Vector const &v1, Vector const &v2){
-        return (v1.x*v2.x) + (v1.y*v2.y) + (v1.z*v2.z);
-    }
-    static Vector add(Vector const &v1, Vector const &v2){
-        return Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
-    }
-    static Vector sub(Vector const &v1, Vector const &v2){
-        return Vector(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
-    }
-    static Vector sc_mult(Vector const &v1, long double k){
-        return Vector(v1.x * k, v1.y * k, v1.z * k);
-    }
-    static void print(Vector const &v){
-        std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
-    }
-    static void print(Vector const &v, VFormat_Opt opt ){
-        if(opt == NL) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
-        else if(opt == NR) std::cout<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
-        else if(opt == CSV_F) std::cout<<v.x<<", "<<v.y<<", "<<v.z<<std::endl;
-    }
-    static void save_to_file(std::ostream &file, Vector const &v, VFormat_Opt opt){
-        if(opt == NL) file<< "[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]"<<std::endl;
-        else if(opt == NR) file<<"[ "<<v.x<<", "<<v.y<<", "<<v.z<<" ]  ";
-        else if(opt == CSV_F) file<<v.x<<", "<<v.y<<", "<<v.z<<std::endl;
-    }
-    static long double norm(Vector const &v){
-        return sqrt((v.x*v.x) + (v.y*v.y) + (v.z*v.z));
-    }
-    static Vector adjust_mag(Vector const &v, long double const &mag){
-        long double norm = Vector::norm(v);
-        if(norm == 0){
-            std::cout<<"ERR norm == 0"<<std::endl;
-            assert(norm != 0);
-        }
-        long double scaling_const = mag/norm;
-        return Vector::sc_mult(v, scaling_const);
-    }
-    static long double x_get(Vector const &v) {return v.x;}
-    static long double y_get(Vector const &v) {return v.y;}
-    static long double z_get(Vector const &v) {return v.z;}
-
-    Vector operator+(Vector const &v2){ //addition
-        return Vector(this->x + v2.x, this->y + v2.y, this->z + v2.z);
-    }
-    Vector operator+(Vector &v2){ //addition
-        return Vector(this->x + v2.x, this->y + v2.y, this->z + v2.z);
-    }
-    Vector operator-(Vector const &v2){  //subtraction
-        return Vector(this->x - v2.x, this->y - v2.y, this->z - v2.z);
-    }
-    Vector operator-(Vector &v2){  //subtraction
-        return Vector(this->x - v2.x, this->y - v2.y, this->z - v2.z);
-    }
-    Vector operator*(Vector v2){ //cross prod
-
-        long double new_x = (this->y * v2.z) - (this->z * v2.y);
-        long double new_y = (this->z * v2.x) - (this->x * v2.z);  
-        long double new_z = (this->x * v2.y) - (this->y * v2.x);
-        Vector result(new_x, new_y, new_z);
-
-        return result;
-    }
-    long double operator%(Vector const &v2){ //dot prod
-        return (this->x*v2.x) + (this->y*v2.y) + (this->z*v2.z);
-    }
-    Vector operator*(long double k){ //sc mult
-        return Vector(this->x * k, this->y * k, this->z * k);
-    }
-    
-} Vector;
-//define vector ops
-Vector operator*(long double k, Vector const &v1){ //sc mult
-    return Vector(Vector::x_get(v1) * k, Vector::y_get(v1) * k,Vector::z_get(v1) * k);
-}
-std::ostream &operator<<(std::ostream &output, Vector const &v){ //print
-    output <<"[ "<<Vector::x_get(v)<<", "<<Vector::y_get(v)<<", "<<Vector::z_get(v)<<" ]";
-    return output;
-}
-
-Vector operator-(Vector const &v1, Vector v2){  //subtraction
-    return Vector(Vector::x_get(v1)- Vector::x_get(v2), Vector::y_get(v1)- Vector::y_get(v2), Vector::z_get(v1)- Vector::z_get(v2));
-}
-Vector operator+(Vector const &v1, Vector v2){  //subtraction
-    return Vector(Vector::x_get(v1) + Vector::x_get(v2), Vector::y_get(v1) + Vector::y_get(v2), Vector::z_get(v1) + Vector::z_get(v2));
-}
-
-    
 
 
 

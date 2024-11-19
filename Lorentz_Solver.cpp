@@ -93,7 +93,38 @@ public:
     static long double x_get(Vector const &v) {return v.x;}
     static long double y_get(Vector const &v) {return v.y;}
     static long double z_get(Vector const &v) {return v.z;}
+
+    Vector operator+(Vector const &v2){ //addition
+        return Vector(this->x + v2.x, this->y + v2.y, this->z + v2.z);
+    }
+    Vector operator-(Vector const &v2){  //subtraction
+        return Vector(this->x - v2.x, this->y - v2.y, this->z - v2.z);
+    }
+    Vector operator*(Vector v2){ //cross prod
+
+        long double new_x = (this->y * v2.z) - (this->z * v2.y);
+        long double new_y = (this->z * v2.x) - (this->x * v2.z);  
+        long double new_z = (this->x * v2.y) - (this->y * v2.x);
+        Vector result(new_x, new_y, new_z);
+
+        return result;
+    }
+    long double operator%(Vector const &v2){ //dot prod
+        return (this->x*v2.x) + (this->y*v2.y) + (this->z*v2.z);
+    }
+    Vector operator*(long double k){ //sc mult
+        return Vector(this->x * k, this->y * k, this->z * k);
+    }
+    
 } Vector;
+//define vector ops
+Vector operator*(long double k, Vector const &v1){ //sc mult
+    return Vector(Vector::x_get(v1) * k, Vector::y_get(v1) * k,Vector::z_get(v1) * k);
+}
+std::ostream &operator<<(std::ostream &output, Vector const &v){ //print
+    output <<"[ "<<Vector::x_get(v)<<", "<<Vector::y_get(v)<<", "<<Vector::z_get(v)<<" ]";
+    return output;
+}
 
 //std Object class
 typedef class Object{

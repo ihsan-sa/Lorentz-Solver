@@ -4,9 +4,7 @@
 
 #include <fstream>
 
-enum VFormat;
 class Vector;
-
 
 typedef enum VFormat_Opt{
     NL, //new line

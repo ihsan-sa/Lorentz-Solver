@@ -5,6 +5,7 @@
 #include <cmath>
 
 
+
 Vector::Vector(long double x, long double y, long double z){
     this->x = x;
     this->y = y;

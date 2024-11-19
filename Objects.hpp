@@ -1,8 +1,9 @@
 // Objects
-#include "Vector.hpp"
 
 #ifndef OBJECTS_H
 #define OBJECTS_H
+#include "Vector.hpp"
+
 
 class Object;
 class Wire;

@@ -1,8 +1,10 @@
 
+#include "Vector.hpp"
+#include "Objects.hpp"
 #include "Space.hpp"
+#include "Particle.hpp"
 #include <chrono>
 #include <iostream>
-#include <vector>
 
 
 void Space::add_object(Object &object){ //const or not?

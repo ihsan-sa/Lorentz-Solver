@@ -2,22 +2,11 @@
 #define SPACE_H
 
 #include <vector>
-#include "Vector.hpp"
-#include "Objects.hpp"
+#include "Particle.hpp"
 
 class Particle;
 
 //Enums used to define function/simulation options
-
-typedef enum Lorentz_Calculation_Opt{
-    NO_MASS,
-    WITH_MASS,
-}Lorentz_Calculation_Opt;
-
-typedef enum Simulation_Type{
-    KINEMATIC, 
-    RK4_HYBRID
-} Simulation_Type;
 
 class Space;
 

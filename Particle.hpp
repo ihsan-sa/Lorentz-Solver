@@ -1,8 +1,6 @@
 #ifndef PARTICLE_H
 #define PARTICLE_H
 
-#include "Vector.hpp"
-#include "Objects.hpp"
 
 typedef enum Lorentz_Calculation_Opt{
     NO_MASS,
@@ -15,8 +13,6 @@ typedef enum Simulation_Type{
 } Simulation_Type;
 
 class Space;
-
-
 class Particle;
 
 typedef class Particle : public Object{

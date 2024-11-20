@@ -1,4 +1,7 @@
+#include "Vector.hpp"
+#include "Objects.hpp"
 #include "Particle.hpp"
+#include "Space.hpp"
 #include <iostream>
 #include <cmath>
 

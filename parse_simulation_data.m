@@ -12,7 +12,7 @@ figure;
 %plot3(wire_data.x, wire_data.y, wire_data.z, 'Color',[.7,.2,0.7]); %plot a
 %wire
 %hold on
-plot3(p1.x, p1.y, p1.z, '.', 'Color',[1,0,0]);
+plot3(p1.x, p1.y, p1.z, 'Color',[1,0,0]);
 hold on
 %plot3(data.x, data.y, data.z, '.', 'Color',[1,0,0]);
 %plot3(p2.x, p2.y, p2.z, '.', 'Color','b');
@@ -20,6 +20,7 @@ hold on
 %plot3(p4.x, p4.y, p4.z, '.', 'Color','y');
 %plot3(-1,0,0,'b*') %plot particle start
 plot3(1,0,0,'r*') %plot particle start
+
 
 %plot3(-3, 4,3.5, 'b*'); %plot a charge
 xlabel('x');

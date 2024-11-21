@@ -2,7 +2,7 @@
 #include <cmath>
 #include <iostream>
 
-#define PI 3.141592
+#define PI M_PI
 
 
 //Uniform_Magnetic_Field

@@ -34,6 +34,6 @@ public:
     void simulate(Space &space, long double t, long double dt, std::ofstream &Data, Simulation_Type sim_type);
     void save_position();
 
-}Particle;
+} Particle;
 
 #endif

@@ -85,6 +85,21 @@ Vector Particle::compute_velocity(Space  &space, long double dt){
     Vector computed_velocity = velocity_ + ((a1 + (2 * a2) + (2 * a3) + a4) * (dt/6));
     return computed_velocity;
 }
+Vector Particle::compute_pos_update(Space  &space, long double dt){
+    Vector a1 = this->lorentz_force(space, position_, velocity_, WITH_MASS);
+    Vector a2 = this->lorentz_force(space, position_, (velocity_ + (a1 * (dt/2))), WITH_MASS);
+    Vector a3 = this->lorentz_force(space, position_, (velocity_ + (a2 * (dt/2))), WITH_MASS);
+    Vector a4 = this->lorentz_force(space, position_, (velocity_ + (a3 * dt)), WITH_MASS);
+
+    Vector s1 = velocity_;
+    Vector s2 = velocity_ + a1*(dt/2);
+    Vector s3 = velocity_ + a2*(dt/2);
+    Vector s4 = velocity_ + a3*(dt);
+
+    Vector computed_position = position_ + (dt/6)*(s1 + (2*s2) + (2*s3) + s4);
+
+    return computed_position;
+}
 void Particle::compute_position_RK4_HYBRID(Space &space, long double dt){
     
     Vector velocity_1 = compute_velocity(space, dt); //computing velocity at next time
@@ -96,7 +111,8 @@ void Particle::compute_position_RK4_HYBRID(Space &space, long double dt){
 
     // Vector s1 = position_ + (dt/6)*(v1 + (2*v2) + (2*v3) + v4); //use this for the revised RK4 approx of position
     // Vector s1 = position_ + dt*velocity_1;    //use this for the old approx
-    Vector s1 = position_ + dt*velocity_;  //use this for an approx using the current val of velocity.
+    // Vector s1 = position_ + dt*velocity_;  //use this for an approx using the current val of velocity.
+    Vector s1 = compute_pos_update(space, dt); //use this for an approx using another "tandem" RK4
 
     velocity_ = velocity_1;
     next_position_ = s1;

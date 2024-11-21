@@ -27,6 +27,7 @@ public:
     Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass, std::string name);
     Vector magnetic_field_strength(Vector const &position);
     Vector electric_field_strength(Vector const &position);
+    Vector compute_pos_update(Space  &space, long double dt);
     Vector lorentz_force(Space &space, Vector const &position, Vector const &velocity, Lorentz_Calculation_Opt opt);
     void compute_position(Space &space, long double dt);
     void compute_position_RK4_HYBRID(Space &space, long double dt);

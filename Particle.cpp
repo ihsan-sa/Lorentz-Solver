@@ -17,6 +17,15 @@ Particle::Particle(Vector const &init_pos, Vector const &init_vel, long double c
     std::string file_name = name + ".csv";
     Data_ = std::ofstream(file_name);
     Data_<<"x,y,z"<<std::endl;
+    approx_nbr_ = 1;
+
+    //set past positions to the correct values
+    past_positions_[0] = init_pos;
+    past_velocities_[0] = init_vel;
+    for(int i{1}; i<3;i++){
+        past_positions_ [i] = Vector(0,0,0);
+        past_velocities_[i] = Vector(0,0,0);
+    }
 }
 Vector Particle::magnetic_field_strength(Vector const &position){
     return Vector(0,0,0);
@@ -102,20 +111,57 @@ Vector Particle::compute_pos_update(Space  &space, long double dt){
 }
 void Particle::compute_position_RK4_HYBRID(Space &space, long double dt){
     
-    Vector velocity_1 = compute_velocity(space, dt); //computing velocity at next time
+    Vector velocity_1 = compute_velocity(space, dt); //computing velocity at time t_1
 
-    Vector v1 = velocity_;
-    Vector v2 = compute_velocity(space, dt/2);
-    Vector v3 = compute_velocity(space, dt/2);
-    Vector v4 = compute_velocity(space, dt);
+    std::cout<<"v_i: "<<past_velocities_[0]<<" v_i-1: "<<past_velocities_[1]<<" v_i-2: "<<past_velocities_[2]<<std::endl;
+    std::cout<<"s_i: "<<past_positions_[0]<<" s_i-1: "<<past_positions_[1]<<" s_i-2: "<<past_positions_[2]<<std::endl;
+
+
+
+    //shift past velocities
+    past_velocities_[2] = past_velocities_[1]; 
+    past_velocities_[1] = past_velocities_[0];
+    past_velocities_[0] = velocity_1;
+
+    Vector position_1;
+    //now, we compute the new position using Serge's algorithm
+
+    if(approx_nbr_ == 1){
+        //this means that we now have to compute the position for the first time
+        Vector v_0 = velocity_; //init velocity
+        Vector v_1 = velocity_1; //velocity at time t_1
+        Vector v_2 = compute_velocity(space, dt*2); //velocity at time t_2
+        Vector v_3 = compute_velocity(space, dt*3); //velocity at time t_3
+
+        position_1 = position_ + ((dt/24) * ((9*v_0) + (19*v_1) - (5*v_2) + v_3)); //position at time t_0
+
+    }else{
+
+        position_1 = past_positions_[2] + ((dt/3)*(past_velocities_[2] + (4*past_velocities_[1]) + velocity_1));
+
+    }
+
+    //set past positions
+    past_positions_[2] = past_positions_[1];
+    past_positions_[1] = past_positions_[0];
+    past_positions_[0] = position_1;
+
+    approx_nbr_ ++;
+
+    //
+
+    // Vector v1 = velocity_;
+    // Vector v2 = compute_velocity(space, dt/2);
+    // Vector v3 = compute_velocity(space, dt/2);
+    // Vector v4 = compute_velocity(space, dt);
 
     // Vector s1 = position_ + (dt/6)*(v1 + (2*v2) + (2*v3) + v4); //use this for the revised RK4 approx of position
     // Vector s1 = position_ + dt*velocity_1;    //use this for the old approx
     // Vector s1 = position_ + dt*velocity_;  //use this for an approx using the current val of velocity.
-    Vector s1 = compute_pos_update(space, dt); //use this for an approx using another "tandem" RK4
+    // Vector s1 = compute_pos_update(space, dt); //use this for an approx using another "tandem" RK4
 
     velocity_ = velocity_1;
-    next_position_ = s1;
+    next_position_ = position_1;
 }   
 Vector Particle::update_position(){
     position_ = next_position_;

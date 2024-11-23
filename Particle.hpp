@@ -22,7 +22,10 @@ typedef class Particle : public Object{
     long double charge_;
     long double mass_;
     long double k_ = 8.99e9;
+    unsigned long long approx_nbr_;
     std::ofstream Data_;
+    Vector past_positions_[3];
+    Vector past_velocities_[3];
 public:
     Particle(Vector const &init_pos, Vector const &init_vel, long double charge, long double mass, std::string name);
     Vector magnetic_field_strength(Vector const &position);

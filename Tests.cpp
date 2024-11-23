@@ -69,7 +69,7 @@ void sim2_UMF_UEF(){
 
     //set simulation parameters
     long double t = 20;
-    long double dt = 1;
+    long double dt = 0.1;
 
     //run simulation
     space1.simulate(t, dt, RK4_HYBRID);
